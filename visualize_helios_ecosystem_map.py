@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Create a visually rich SVG map of Helios oncological, viszeral and uro centers.
+"""Erstellt eine visuell komplexe SVG-Karte für Helios ONKO/VISZ/URO-Zentren.
 
-The visualization includes per-center metrics:
-1) overall partners
-2) partners tied to Helios centers but outside Helios hospitals (non-Helios partners)
-3) Helios partners not linked to any Helios center (global KPI)
+Die Struktur basiert auf den Entitäten aus:
+- fulldb_oncos.json
+- fulldb_viszes.json
+- fulldb_uros.json
+
+Metriken je Zentrum:
+1) Gesamtzahl angebundener Partner
+2) Nicht-Helios-Partner innerhalb angebundener Helios-Zentren
+3) Helios-Partner, die in keinem Helios-Zentrum angebunden sind (global)
 """
 
 from __future__ import annotations
@@ -22,6 +27,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--centers", default="fulldb_centers.json")
     p.add_argument("--partners", default="fulldb_partners.json")
     p.add_argument("--partner-links", default="fulldb_partners_centers.json")
+    p.add_argument("--oncos", default="fulldb_oncos.json")
+    p.add_argument("--viszes", default="fulldb_viszes.json")
+    p.add_argument("--uros", default="fulldb_uros.json")
     p.add_argument("--onco-links", default="fulldb_oncos_centers.json")
     p.add_argument("--visz-links", default="fulldb_viszes_centers.json")
     p.add_argument("--uro-links", default="fulldb_uros_centers.json")
@@ -34,51 +42,76 @@ def load_json(path: str) -> list[dict]:
         return json.load(f)
 
 
-def is_helios_record(record: dict) -> bool:
-    haystack = " ".join(
+def is_helios(record: dict) -> bool:
+    text = " ".join(
         str(record.get(k, ""))
         for k in ("inst1", "inst2", "basement", "url", "p_email", "specialty")
     ).lower()
-    return "helios" in haystack
+    return "helios" in text
 
 
 def esc(text: str) -> str:
     return html.escape(text, quote=True)
 
 
-def center_short_name(center: dict) -> str:
-    raw = center.get("inst1") or center.get("inst2") or f"Center {center.get('id')}"
-    return raw if len(raw) <= 56 else raw[:53] + "..."
+def short_name(text: str, max_len: int = 60) -> str:
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 3] + "..."
 
 
-def cluster_positions(n: int, cx: float, cy: float, base_r: float, spread: float) -> list[tuple[float, float]]:
+def spiral_positions(n: int, cx: float, cy: float, base_r: float, spread: float) -> list[tuple[float, float]]:
     if n <= 0:
         return []
-    pts: list[tuple[float, float]] = []
+    coords: list[tuple[float, float]] = []
     golden = math.pi * (3 - math.sqrt(5))
-    for i in range(n):
-        t = i + 1
-        radius = base_r + spread * math.sqrt(t / n)
-        angle = t * golden
-        pts.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
-    return pts
+    for i in range(1, n + 1):
+        r = base_r + spread * math.sqrt(i / n)
+        a = golden * i
+        coords.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return coords
+
+
+def collect_domain_nodes(domain_name: str, nodes_raw: list[dict], links: list[dict], centers: dict[int, dict], center_to_partners: dict[int, set[int]], partners: dict[int, dict]) -> list[dict]:
+    helios_nodes = [n for n in nodes_raw if is_helios(n)]
+    node_by_id = {n["id"]: n for n in helios_nodes}
+
+    node_to_centers: dict[int, set[int]] = defaultdict(set)
+    for rel in links:
+        nid = rel.get("n_id")
+        cid = rel.get("c_id")
+        if isinstance(nid, int) and isinstance(cid, int) and nid in node_by_id:
+            node_to_centers[nid].add(cid)
+
+    result = []
+    for nid, node in node_by_id.items():
+        cids = node_to_centers.get(nid, set())
+        partner_ids: set[int] = set()
+        for cid in cids:
+            partner_ids.update(center_to_partners.get(cid, set()))
+        partner_rows = [partners[pid] for pid in partner_ids if pid in partners]
+        non_helios_count = sum(1 for p in partner_rows if not is_helios(p))
+        helios_inside_count = sum(1 for p in partner_rows if is_helios(p))
+
+        result.append(
+            {
+                "domain": domain_name,
+                "id": nid,
+                "name": short_name(node.get("inst1") or node.get("inst2") or f"Zentrum {nid}"),
+                "ort": node.get("loc", ""),
+                "center_count": len(cids),
+                "partner_gesamt": len(partner_ids),
+                "partner_extern": non_helios_count,
+                "partner_helios_intern": helios_inside_count,
+            }
+        )
+    return sorted(result, key=lambda x: x["partner_gesamt"], reverse=True)
 
 
 def build_map(args: argparse.Namespace) -> tuple[str, dict]:
     centers = {c["id"]: c for c in load_json(args.centers)}
     partners = {p["id"]: p for p in load_json(args.partners)}
     partner_links = load_json(args.partner_links)
-
-    onco_ids = {r["c_id"] for r in load_json(args.onco_links)}
-    visz_ids = {r["c_id"] for r in load_json(args.visz_links)}
-    uro_ids = {r["c_id"] for r in load_json(args.uro_links)}
-
-    helios_center_ids_all = {cid for cid, c in centers.items() if is_helios_record(c)}
-    typed_helios_ids = {
-        cid
-        for cid in helios_center_ids_all
-        if cid in onco_ids or cid in visz_ids or cid in uro_ids
-    }
 
     center_to_partners: dict[int, set[int]] = defaultdict(set)
     for rel in partner_links:
@@ -87,134 +120,135 @@ def build_map(args: argparse.Namespace) -> tuple[str, dict]:
         if isinstance(pid, int) and isinstance(cid, int):
             center_to_partners[cid].add(pid)
 
-    helios_partner_ids = {pid for pid, p in partners.items() if is_helios_record(p)}
-    helios_linked_partner_ids = {
-        pid
+    helios_center_ids = {cid for cid, c in centers.items() if is_helios(c)}
+    helios_partner_ids = {pid for pid, p in partners.items() if is_helios(p)}
+    helios_partner_linked_to_helios_center = {
+        rel["p_id"]
         for rel in partner_links
-        if rel.get("c_id") in helios_center_ids_all and isinstance((pid := rel.get("p_id")), int)
+        if isinstance(rel.get("p_id"), int)
+        and isinstance(rel.get("c_id"), int)
+        and rel["c_id"] in helios_center_ids
     }
-    helios_partners_not_in_helios_centers = helios_partner_ids - helios_linked_partner_ids
+    helios_partner_ohne_zentrum = helios_partner_ids - helios_partner_linked_to_helios_center
 
-    nodes = []
-    for cid in sorted(typed_helios_ids):
-        c = centers[cid]
-        pids = center_to_partners.get(cid, set())
-        partner_rows = [partners[pid] for pid in pids if pid in partners]
-        non_helios = sum(1 for p in partner_rows if not is_helios_record(p))
-        helios = sum(1 for p in partner_rows if is_helios_record(p))
-        center_types = []
-        if cid in onco_ids:
-            center_types.append("onco")
-        if cid in visz_ids:
-            center_types.append("visz")
-        if cid in uro_ids:
-            center_types.append("uro")
-        primary = ("onco" if "onco" in center_types else "visz" if "visz" in center_types else "uro")
-        nodes.append(
-            {
-                "id": cid,
-                "name": center_short_name(c),
-                "loc": c.get("loc", ""),
-                "types": center_types,
-                "primary": primary,
-                "overall": len(pids),
-                "external": non_helios,
-                "helios_inside": helios,
-            }
-        )
+    onco_nodes = collect_domain_nodes(
+        "Onkologische Zentren",
+        load_json(args.oncos),
+        load_json(args.onco_links),
+        centers,
+        center_to_partners,
+        partners,
+    )
+    visz_nodes = collect_domain_nodes(
+        "Viszeralonkologische Zentren",
+        load_json(args.viszes),
+        load_json(args.visz_links),
+        centers,
+        center_to_partners,
+        partners,
+    )
+    uro_nodes = collect_domain_nodes(
+        "Uroonkologische Zentren",
+        load_json(args.uros),
+        load_json(args.uro_links),
+        centers,
+        center_to_partners,
+        partners,
+    )
 
-    by_cluster = {"onco": [], "visz": [], "uro": []}
-    for n in nodes:
-        by_cluster[n["primary"]].append(n)
+    all_nodes = onco_nodes + visz_nodes + uro_nodes
 
-    palette = {"onco": "#8e44ad", "visz": "#16a085", "uro": "#e67e22"}
-
-    w, h = 2400, 1500
-    clusters = {
-        "onco": (600, 760, 80, 430),
-        "visz": (1200, 760, 80, 430),
-        "uro": (1800, 760, 80, 430),
+    colors = {
+        "Onkologische Zentren": "#8e44ad",
+        "Viszeralonkologische Zentren": "#16a085",
+        "Uroonkologische Zentren": "#e67e22",
     }
+    domains = [
+        ("Onkologische Zentren", onco_nodes, (600, 820, 70, 380)),
+        ("Viszeralonkologische Zentren", visz_nodes, (1200, 820, 70, 380)),
+        ("Uroonkologische Zentren", uro_nodes, (1800, 820, 70, 380)),
+    ]
 
-    out = []
-    out.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">')
+    w, h = 2400, 1600
+    out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">']
     out.append(
         "<style>"
         "text{font-family:Inter,Segoe UI,Arial,sans-serif;}"
-        ".title{font-size:38px;font-weight:700;}"
-        ".subtitle{font-size:18px;fill:#444;}"
-        ".kpiLabel{font-size:16px;fill:#555;}"
-        ".kpiValue{font-size:34px;font-weight:700;}"
-        ".clusterTitle{font-size:28px;font-weight:700;}"
-        ".small{font-size:13px;fill:#555;}"
+        ".title{font-size:40px;font-weight:700;}"
+        ".subtitle{font-size:18px;fill:#475569;}"
+        ".kpiL{font-size:16px;fill:#64748b;}"
+        ".kpiV{font-size:34px;font-weight:700;fill:#0f172a;}"
+        ".cluster{font-size:28px;font-weight:700;}"
+        ".small{font-size:12px;fill:#334155;}"
         "</style>"
     )
     out.append(f'<rect x="0" y="0" width="{w}" height="{h}" fill="#f8fafc"/>')
-    out.append('<text class="title" x="60" y="62">Helios Center Ecosystem Map (Onko + VISZ + Uro)</text>')
-    out.append('<text class="subtitle" x="60" y="92">Node size = overall partners · Ring width = external (non-Helios) partners · Fill color = center category</text>')
+    out.append('<text class="title" x="60" y="64">Helios-Landkarte: ONKO / VISZ / URO</text>')
+    out.append('<text class="subtitle" x="60" y="94">Struktur nach Onkologischen, Viszeralonkologischen und Uroonkologischen Zentren</text>')
+    out.append('<text class="subtitle" x="60" y="120">Kreisgröße = Partner gesamt · Randstärke = Anteil externe Partner (nicht Helios)</text>')
 
     kpis = [
-        ("Helios centers (Onko/VISZ/Uro)", f"{len(nodes)}"),
-        ("Partner links across those centers", f"{sum(n['overall'] for n in nodes):,}"),
-        ("External partners in Helios centers", f"{sum(n['external'] for n in nodes):,}"),
-        ("Helios partners not in any Helios center", f"{len(helios_partners_not_in_helios_centers):,}"),
+        ("Helios Onkologische Zentren", str(len(onco_nodes))),
+        ("Helios VISZ-Zentren", str(len(visz_nodes))),
+        ("Helios URO-Zentren", str(len(uro_nodes))),
+        ("Helios-Partner ohne Helios-Zentrum", f"{len(helios_partner_ohne_zentrum):,}"),
     ]
-    for i, (label, value) in enumerate(kpis):
+    for i, (lab, val) in enumerate(kpis):
         x = 60 + i * 560
-        out.append(f'<rect x="{x}" y="118" width="520" height="128" rx="14" fill="#ffffff" stroke="#dfe6ee"/>')
-        out.append(f'<text class="kpiLabel" x="{x+20}" y="156">{esc(label)}</text>')
-        out.append(f'<text class="kpiValue" x="{x+20}" y="210">{esc(value)}</text>')
+        out.append(f'<rect x="{x}" y="150" width="520" height="122" rx="14" fill="#fff" stroke="#dbe3ee"/>')
+        out.append(f'<text class="kpiL" x="{x+20}" y="188">{esc(lab)}</text>')
+        out.append(f'<text class="kpiV" x="{x+20}" y="238">{esc(val)}</text>')
 
-    for cluster, (cx, cy, base, spread) in clusters.items():
-        fill = palette[cluster]
-        out.append(f'<circle cx="{cx}" cy="{cy}" r="{spread+120}" fill="{fill}" opacity="0.05"/>')
-        out.append(f'<text class="clusterTitle" x="{cx}" y="330" text-anchor="middle" fill="{fill}">{cluster.upper()} Centers</text>')
+    for dname, nodes, (cx, cy, base, spread) in domains:
+        color = colors[dname]
+        out.append(f'<circle cx="{cx}" cy="{cy}" r="{spread+120}" fill="{color}" opacity="0.06"/>')
+        out.append(f'<text class="cluster" x="{cx}" y="340" text-anchor="middle" fill="{color}">{esc(dname)}</text>')
 
-        items = sorted(by_cluster[cluster], key=lambda x: x["overall"], reverse=True)
-        coords = cluster_positions(len(items), cx, cy, base, spread)
-        for idx, (node, (x, y)) in enumerate(zip(items, coords), start=1):
-            r = 10 + min(52, math.sqrt(max(node["overall"], 1)) * 1.45)
-            ext_ratio = node["external"] / node["overall"] if node["overall"] else 0
-            ring_w = 1.5 + 8 * ext_ratio
-            opacity = 0.38 + 0.45 * ext_ratio
-            types_label = "/".join(t.upper() for t in node["types"])
+        coords = spiral_positions(len(nodes), cx, cy, base, spread)
+        for idx, (n, (x, y)) in enumerate(zip(nodes, coords), start=1):
+            total = max(n["partner_gesamt"], 1)
+            ext_ratio = n["partner_extern"] / total
+            radius = 10 + min(54, math.sqrt(total) * 1.55)
+            stroke_w = 1.8 + 8.5 * ext_ratio
+            opacity = 0.35 + 0.5 * ext_ratio
+
             tooltip = (
-                f"{node['name']} ({node['loc']})\\n"
-                f"Types: {types_label}\\n"
-                f"Overall partners: {node['overall']}\\n"
-                f"External partners (non-Helios): {node['external']}\\n"
-                f"Helios partners inside center: {node['helios_inside']}"
+                f"{n['name']} ({n['ort']})\\n"
+                f"Kategorie: {n['domain']}\\n"
+                f"Angebundene Organzentren: {n['center_count']}\\n"
+                f"Partner gesamt: {n['partner_gesamt']}\\n"
+                f"Partner extern (nicht Helios): {n['partner_extern']}\\n"
+                f"Partner Helios-intern: {n['partner_helios_intern']}"
             )
             out.append(
-                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{fill}" opacity="{opacity:.2f}" '
-                f'stroke="#1f2937" stroke-width="{ring_w:.2f}"><title>{esc(tooltip)}</title></circle>'
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius:.1f}" fill="{color}" opacity="{opacity:.2f}" '
+                f'stroke="#1f2937" stroke-width="{stroke_w:.2f}"><title>{esc(tooltip)}</title></circle>'
             )
-            if idx <= 18:
-                out.append(
-                    f'<text class="small" x="{x:.1f}" y="{y+r+16:.1f}" text-anchor="middle">'
-                    f"{esc(node['name'])}</text>"
-                )
+            if idx <= 10:
+                out.append(f'<text class="small" x="{x:.1f}" y="{y+radius+15:.1f}" text-anchor="middle">{esc(n["name"])}</text>')
 
-    top = sorted(nodes, key=lambda n: n["overall"], reverse=True)[:18]
-    out.append('<rect x="60" y="1240" width="2280" height="220" rx="14" fill="#ffffff" stroke="#dfe6ee"/>')
-    out.append('<text x="80" y="1270" style="font-size:22px;font-weight:700;">Top Helios centers by partner count</text>')
+    top = sorted(all_nodes, key=lambda n: n["partner_gesamt"], reverse=True)[:18]
+    out.append('<rect x="60" y="1300" width="2280" height="250" rx="14" fill="#fff" stroke="#dbe3ee"/>')
+    out.append('<text x="80" y="1332" style="font-size:24px;font-weight:700;fill:#0f172a;">Top 18 Helios-Zentren nach Partnerzahl (ONKO/VISZ/URO)</text>')
     for i, n in enumerate(top):
-        col = i // 6
-        row = i % 6
+        col, row = divmod(i, 6)
         x = 80 + col * 760
-        y = 1305 + row * 24
+        y = 1370 + row * 28
         out.append(
             f'<text class="small" x="{x}" y="{y}">{i+1:02d}. {esc(n["name"])} '
-            f'| overall: {n["overall"]} | external: {n["external"]} | helios-inside: {n["helios_inside"]}</text>'
+            f'| Kategorie: {esc(n["domain"])} | Partner gesamt: {n["partner_gesamt"]} '
+            f'| extern: {n["partner_extern"]} | Helios-intern: {n["partner_helios_intern"]}</text>'
         )
 
     out.append("</svg>")
 
     metrics = {
-        "center_count": len(nodes),
-        "overall_partner_links": sum(n["overall"] for n in nodes),
-        "external_partner_links": sum(n["external"] for n in nodes),
-        "helios_partners_not_in_helios_centers": len(helios_partners_not_in_helios_centers),
+        "anzahl_onko_helios": len(onco_nodes),
+        "anzahl_visz_helios": len(visz_nodes),
+        "anzahl_uro_helios": len(uro_nodes),
+        "partner_gesamt_ueber_alle_zentren": sum(n["partner_gesamt"] for n in all_nodes),
+        "partner_extern_ueber_alle_zentren": sum(n["partner_extern"] for n in all_nodes),
+        "helios_partner_ohne_helios_zentrum": len(helios_partner_ohne_zentrum),
     }
     return "\n".join(out), metrics
 
@@ -224,7 +258,7 @@ def main() -> None:
     svg, metrics = build_map(args)
     out_path = Path(args.output)
     out_path.write_text(svg, encoding="utf-8")
-    print(f"Saved visualization to: {out_path}")
+    print(f"SVG gespeichert: {out_path}")
     for k, v in metrics.items():
         print(f"{k}: {v}")
 
