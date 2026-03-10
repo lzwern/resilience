@@ -367,17 +367,13 @@ function organOptionsHtml(){
 
 function normalizeClinics(rows){ const out=[]; for(const r of rows||[]){ const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? r.id ?? null; if(clinicNr==null) continue; out.push({clinic_nr:String(clinicNr),name:r.inst1||r.name||'',street:r.street||'',zip:r.zip||'',loc:r.loc||r.ort||''}); } return out; }
 function normalizeOZ(rows,domain,clinicByNr){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? null; const clinic=(clinicNr!=null&&clinicByNr)?clinicByNr.get(String(clinicNr)):null; out.push({id:r.id,key:`${domain}:${r.id}`,domain,name:r.inst1||r.name||`${domain} ${r.id}`,city:r.loc||r.ort||(clinic?.loc||''),lat,lon,network:netOfAny(r.inst1,r.inst2,r.url),street:r.street||clinic?.street||'',zip:r.zip||clinic?.zip||'',inst2:r.inst2||'',url:r.url||''}); } return out; }
-function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
+function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',reg_nr:r.reg_nr||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
 function normalizePartners(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Partner ${r.id}`,city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',phone:r.phone||'',email:r.p_email||r.email||'',url:r.url||'',contact:[r.p_title,r.p_fname,r.p_lname].filter(Boolean).join(' ').trim(),lat,lon}); } return out; }
 function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
-  const ozToCenters={};
+  const ozToCenters={}; function add(domain,n_id,c_id){ const k=`${domain}:${n_id}`; (ozToCenters[k] ||= []).push(c_id); }
+  for(const r of oncos_centers||[]) add('ONKO',r.n_id,r.c_id); for(const r of viszes_centers||[]) add('VISZ',r.n_id,r.c_id); for(const r of uros_centers||[]) add('URO',r.n_id,r.c_id);
 
   const assignment = buildCenterAssignments(DB?.CENTERS||[],oncos_centers,viszes_centers,uros_centers);
-  for(const [cid, ozKeys] of assignment.resolvedOZKeysByCenter.entries()){
-    for(const ozKey of ozKeys){
-      (ozToCenters[ozKey] ||= []).push(cid);
-    }
-  }
 
   const centerToPartners={};
   const partnerToCenterIds = new Map();
@@ -391,8 +387,9 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
   const allAssignedCenterIds=new Set(Object.values(ozToCenters).flat().map(x=>String(x)));
   const allLinkedPartnerIds=new Set(Object.values(ozToPartners).flat().map(x=>String(x)));
 
-  const centerToOZKeys = assignment.resolvedOZKeysByCenter;
+  const centerToOZKeys = assignment.directOZKeysByCenter;
   const centerToDirectOZKeys = assignment.directOZKeysByCenter;
+  const centerToResolvedOZKeys = assignment.resolvedOZKeysByCenter;
 
   const partnerToOZKeys = new Map();
   for(const [ozKey, pids] of Object.entries(ozToPartners)){
@@ -403,7 +400,7 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
     }
   }
 
-  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, centerToDirectOZKeys, partnerToOZKeys, partnerToCenterIds};
+  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, centerToDirectOZKeys, centerToResolvedOZKeys, partnerToOZKeys, partnerToCenterIds};
 }
 function addLine(a,b,opts){ (freezeLines ? frozenLinesLayer : linesLayer).addLayer(L.polyline([a,b],opts)); }
 function updateVisibility(){
@@ -507,7 +504,25 @@ function renderOverviewDashboard(preferredTab){
   }).filter(r => f.net === 'ALL' || r.net === f.net).sort((a,b)=>b.partners-a.partners);
   const maxPartners = Math.max(1, ...rows.map(r=>r.partners), 1);
 
-  const filteredCentersGlobal = (DB.CENTERS||[]).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f));
+  function effectiveNetworkOzKeysForCenter(center){
+    const cid = String(center.id);
+    const direct = DB.centerToOZKeys?.get(cid) || [];
+    if(direct.length) return direct;
+    const fallback = (DB.centerToResolvedOZKeys?.get(cid) || []).filter(k => String(k).startsWith('ONKO:'));
+    return fallback;
+  }
+
+  function centerMatchesNetworkInNetworkTab(center){
+    if(!f || f.net === 'ALL') return true;
+    const ozKeys = effectiveNetworkOzKeysForCenter(center);
+    if(!ozKeys.length) return false;
+    return ozKeys.some(k => {
+      const oz = DB.ozByKey.get(k);
+      return oz && oz.network === f.net;
+    });
+  }
+
+  const filteredCentersGlobal = (DB.CENTERS||[]).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetworkInNetworkTab(c));
   const filteredCenterIdsGlobal = new Set(filteredCentersGlobal.map(c => String(c.id)));
   const filteredPartnersGlobal = (DB.PARTNERS||[]).filter(p => partnerMatchesNetwork(p, f) && (f.organ === 'ALL' || (DB.partnerToCenterIds?.get(String(p.id)) || []).some(cid => filteredCenterIdsGlobal.has(String(cid)))));
   const filteredPraxenGlobal = filteredPartnersGlobal.filter(p => isPraxisName(p.name));
@@ -517,7 +532,7 @@ function renderOverviewDashboard(preferredTab){
   const centersByNetwork = new Map();
   const unassignedNetworkCenters = [];
   for(const c of filteredCentersGlobal){
-    const ozKeys = DB.centerToOZKeys?.get(String(c.id)) || [];
+    const ozKeys = effectiveNetworkOzKeysForCenter(c);
     const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
     if(!ozKeys.length){
       unassignedNetworkCenters.push({center:c, ozNames:[]});
