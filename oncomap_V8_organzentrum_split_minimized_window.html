@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OncoMap – alle APIs</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
+<style>
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif} #map{height:100vh}
+.ctl{background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.15);border-radius:12px;padding:10px 12px;min-width:280px;box-shadow:0 10px 30px rgba(0,0,0,.18);pointer-events:auto;z-index:99999;position:relative}
+.ctl *{box-sizing:border-box}.ctl .h{font-weight:950;margin-bottom:6px}.ctl .sub{font-size:11px;color:rgba(0,0,0,.65);line-height:1.3;margin-bottom:8px}
+.ctl label{display:flex;gap:8px;align-items:center;margin:4px 0;font-size:12px}.ctl input[type="text"], .ctl select{width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px}
+.row{display:flex;gap:8px}.row>*{flex:1}.btn{width:100%;padding:7px 8px;border-radius:9px;border:1px solid rgba(0,0,0,.18);background:rgba(255,255,255,.85);font-weight:800;font-size:12px;cursor:pointer}.btn:hover{background:#fff}
+.muted{font-size:11px;color:rgba(0,0,0,.65);line-height:1.35;margin-top:8px;white-space:pre-line}.ok{color:#166534}.bad{color:#b91c1c}
+.panel{position:fixed;top:12px;left:12px;bottom:12px;width:min(430px,calc(100vw - 24px));background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.15);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:99999;display:flex;flex-direction:column;overflow:hidden;pointer-events:auto}
+.panel.hidden{display:none}.ph{display:flex;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid rgba(0,0,0,.12)}.pt{font-weight:950;font-size:14px;line-height:1.2}.ps{margin-top:4px;font-size:12px;color:rgba(0,0,0,.65);line-height:1.3}
+.pc{width:34px;height:34px;border-radius:10px;border:1px solid rgba(0,0,0,.15);background:#fff;font-size:18px;font-weight:900;cursor:pointer}.pb{padding:12px;overflow:auto}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kpi{border:1px solid rgba(0,0,0,.12);border-radius:12px;padding:10px;background:rgba(255,255,255,.75)}.kpi .n{font-size:16px;font-weight:950}.kpi .l{font-size:12px;color:rgba(0,0,0,.65);margin-top:3px}
+.sec{margin-top:12px}.sec .st{font-size:13px;font-weight:950}.list{display:flex;flex-direction:column;gap:8px;margin-top:8px}.item{border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:10px;background:rgba(255,255,255,.72)}.item .t{font-size:12px;font-weight:900;line-height:1.25}.item .m{font-size:11px;color:rgba(0,0,0,.65);line-height:1.3;margin-top:4px}
+.tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:850;border:1px solid rgba(0,0,0,.12);margin-right:6px}.tag.praxis{color:#14532d;border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.12)}.tag.org{color:#334155;border-color:rgba(100,116,139,.45);background:rgba(100,116,139,.12)}.tag.int{color:#1d4ed8;border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.12)}.tag.ext{color:#9a3412;border-color:rgba(249,115,22,.45);background:rgba(249,115,22,.12)}
+.links a{color:#0f172a;text-decoration:underline;text-decoration-color:rgba(15,23,42,.25)} .links a:hover{text-decoration-color:rgba(15,23,42,.6)}
+.dashcard{border:1px solid rgba(0,0,0,.12);border-radius:12px;padding:10px;background:rgba(255,255,255,.78)}
+.dashrow{display:grid;grid-template-columns:110px 1fr 38px;gap:8px;align-items:center;margin-top:8px}
+.bar{height:10px;background:rgba(148,163,184,.16);border-radius:999px;overflow:hidden}
+.fill{height:100%;border-radius:999px;background:rgba(59,130,246,.55)}
+.smallgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.smallkpi{border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:8px;background:rgba(255,255,255,.7)}
+.smallkpi .n{font-weight:900;font-size:14px}.smallkpi .l{font-size:11px;color:rgba(0,0,0,.65);margin-top:2px}
+.tabs{display:flex;gap:8px;padding:10px 12px 0 12px;border-bottom:1px solid rgba(0,0,0,.08);background:rgba(255,255,255,.96)}
+.tabbtn{padding:7px 10px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:#fff;font-size:12px;font-weight:800;cursor:pointer}
+.tabbtn.active{background:rgba(59,130,246,.10);border-color:rgba(59,130,246,.35);color:#1d4ed8}
+.tabbtn.hidden{display:none}
+.sectionwrap{display:block}
+.sectionwrap.hidden{display:none}
+.panel.minimized .tabs,.panel.minimized .pb{display:none}
+.panel.minimized{
+  top:auto !important;
+  bottom:12px !important;
+  left:12px !important;
+  width:340px !important;
+  height:auto !important;
+  min-height:0 !important;
+}
+.panel.minimized .ph{border-bottom:none;}
+.panel.minimized .pt{font-size:16px;}
+.panel.minimized .ps,.panel.minimized .crumb{display:none;}
+.reopen-btn{position:fixed;left:12px;top:12px;z-index:100000;background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.15);border-radius:12px;padding:8px 12px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:12px;font-weight:900;cursor:pointer}
+.reopen-btn.hidden{display:none}
+.crumb{font-size:11px;color:rgba(0,0,0,.62);margin-top:4px;line-height:1.25}
+.item.compact{padding:8px}
+.item.compact .t{font-size:12px}
+.item.compact .m{font-size:11px}
+@media (max-width:1200px){#detailPanel{right:12px !important; width:min(430px, calc(100vw - 24px)); min-width:0;}}
+@media (max-width:920px){.panel{left:12px;right:12px;width:auto} #detailPanel{left:12px !important; right:12px !important; top:auto; bottom:12px; max-height:46vh; width:auto !important; min-width:0 !important;}}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<button id="panelReopen" class="reopen-btn hidden">OncoMap öffnen</button>
+<div id="globalPanel" class="panel">
+  <div class="ph">
+    <div>
+      <div id="ptitle" class="pt">OncoMap Deutschland</div>
+      <div id="psub" class="ps">Netzwerk-Dashboard und globale Filter</div>
+      <div id="pcrumb" class="crumb"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button id="pback" class="pc" title="Zurück" style="font-size:14px;visibility:hidden;">←</button>
+      <button id="poverview" class="pc" title="Deutschland-Übersicht" style="font-size:11px;width:auto;padding:0 10px;">DE</button>
+      <button id="pmin" class="pc" title="Minimieren">−</button>
+      <button id="pclose" class="pc" title="Schließen">×</button>
+    </div>
+  </div>
+  <div id="ptabs" class="tabs">
+    <button id="tab_dashboard" class="tabbtn active">Dashboard</button>
+    <button id="tab_network" class="tabbtn">Netzwerk</button>
+    <button id="tab_centers" class="tabbtn">Organe</button>
+    <button id="tab_zentrum" class="tabbtn hidden">Zentrum</button>
+  </div>
+  <div class="pb">
+    <div id="section_dashboard" class="sectionwrap">
+      <div id="pdashboard" class="sec"></div>
+      <div id="pkpis" class="kpis"></div>
+    </div>
+    <div id="section_network" class="sectionwrap hidden">
+      <div id="pnetwork" class="sec"></div>
+    </div>
+    <div id="section_centers" class="sectionwrap hidden">
+      <div class="sec">
+        <div class="st">Organe / Organzentren</div>
+<div style="margin:6px 0 10px 0;font-size:12px;">
+<label style="margin-right:10px;"><input type="checkbox" id="filter_centers_with_oz" checked> mit OZ‑Zuordnung</label>
+<label><input type="checkbox" id="filter_centers_without_oz" checked> ohne OZ‑Zuordnung</label>
+</div>
+        <div id="pcenters" class="list"></div>
+      </div>
+    </div>
+    <div id="section_zentrum" class="sectionwrap hidden">
+      <div id="zkpis" class="kpis"></div>
+      <div id="znetwork" class="sec"></div>
+      <div class="sec">
+        <div class="st">Organzentren dieses Zentrums</div>
+        <div id="zcenters" class="list"></div>
+      </div>
+      <div class="sec">
+        <div class="st">Partner dieses Zentrums</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px;">
+          <label><input type="checkbox" id="zf_praxen" checked> Praxen/MVZ</label>
+          <label><input type="checkbox" id="zf_other" checked> Weitere Partner</label>
+        </div>
+        <div class="muted">Diese Filter wirken nur auf die Liste dieses Zentrums.</div>
+        <div id="zpartners" class="list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script>
+const API = {
+  clinics:"https://api.oncomap.de/api/direct/fulldb_clinics",
+  centers:"https://api.oncomap.de/api/direct/fulldb_centers",
+  oncos:"https://api.oncomap.de/api/direct/fulldb_oncos",
+  viszes:"https://api.oncomap.de/api/direct/fulldb_viszes",
+  uros:"https://api.oncomap.de/api/direct/fulldb_uros",
+  partners:"https://api.oncomap.de/api/direct/fulldb_partners",
+  oncos_centers:"https://api.oncomap.de/api/direct/fulldb_oncos_centers",
+  viszes_centers:"https://api.oncomap.de/api/direct/fulldb_viszes_centers",
+  uros_centers:"https://api.oncomap.de/api/direct/fulldb_uros_centers",
+  partners_centers:"https://api.oncomap.de/api/direct/fulldb_partners_centers"
+};
+const COL_ONKO='#a855f7', COL_VISZ='#22c55e', COL_URO='#f59e0b', COL_ORG='#64748b', COL_PRAX='#22c55e', COL_PARTNER='#f97316';
+const map=L.map('map').setView([51.2,10.4],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18, attribution:'&copy; OpenStreetMap'}).addTo(map);
+map.createPane('panePartner'); map.getPane('panePartner').style.zIndex=450;
+map.createPane('paneOrg'); map.getPane('paneOrg').style.zIndex=520;
+map.createPane('paneViszUro'); map.getPane('paneViszUro').style.zIndex=650;
+map.createPane('paneOnko'); map.getPane('paneOnko').style.zIndex=750;
+map.createPane('paneLines'); map.getPane('paneLines').style.zIndex=700;
+const onkoLayer=L.layerGroup().addTo(map), viszLayer=L.layerGroup().addTo(map), uroLayer=L.layerGroup().addTo(map);
+const centerLayer=L.markerClusterGroup({pane:'paneOrg', clusterPane:'paneOrg', showCoverageOnHover:false, chunkedLoading:true, chunkDelay:25, maxClusterRadius:60}).addTo(map);
+const partnerLayer=L.markerClusterGroup({pane:'panePartner', clusterPane:'panePartner', showCoverageOnHover:false, chunkedLoading:true, chunkDelay:25, maxClusterRadius:60}).addTo(map);
+const linesLayer=L.layerGroup().addTo(map), frozenLinesLayer=L.layerGroup().addTo(map);
+let heatLayer = null;
+let freezeLines=false, DB=null, selectedOZKey=null;
+let currentOrganFilter='ALL';
+let currentMainTab='dashboard';
+let ozMarkerByKey=new Map(), centerMarkerById=new Map(), partnerMarkerById=new Map();
+
+const FilterControl=L.Control.extend({onAdd:function(){
+ const div=L.DomUtil.create('div','ctl');
+ div.innerHTML=`
+  <div class="h">OncoMap – alle APIs</div>
+  <div class="sub">Lädt alle 10 APIs. Fokus: Organzentren + Partner. OZ bleiben Referenz- und Verbindungsebene.</div>
+  <label><input type="checkbox" id="f_onko" checked> ONKO</label>
+  <label><input type="checkbox" id="f_visz" checked> VISZ</label>
+  <label><input type="checkbox" id="f_uro" checked> URO</label>
+  <div style="margin-top:8px;font-weight:900;font-size:12px;">Weitere Ebenen</div>
+  <label><input type="checkbox" id="f_centers" checked> Organzentren</label>
+  <label><input type="checkbox" id="f_unassigned_centers" checked> Organzentren ohne OZ</label>
+  <label><input type="checkbox" id="f_partners" checked> Partner</label>
+  <label><input type="checkbox" id="f_heatmap"> Heatmap Zentren (national)</label>
+  <label><input type="checkbox" id="f_praxen_only" checked> nur Praxen/MVZ auf Karte</label>
+  <div style="margin-top:8px;font-weight:900;font-size:12px;">Netzwerk</div>
+  <select id="f_net"><option value="ALL">Alle</option><option value="HELIOS">Helios</option><option value="SANA">Sana</option><option value="ASKLEPIOS">Asklepios</option><option value="UNI">Uniklinik</option><option value="OTHER">Sonstige</option></select>
+  <div style="margin-top:8px;font-weight:900;font-size:12px;">Suche</div>
+  <input id="f_q" type="text" placeholder="Name / Ort…" />
+  <label style="margin-top:8px;"><input type="checkbox" id="freeze_lines"> Linien einfrieren</label>
+  <div id="status" class="muted">Lade Daten…</div>
+  <div class="muted"><b>Zoom</b>
+• OZ immer sichtbar
+• Organzentren + Partner gemeinsam ab Zoom ≥ 9
+• Heatmap zeigt die nationale Dichte von OZ + Organzentren, ist immer sichtbar und stärker gewichtet
+• Linien nur dort, wo eine echte Verbindung zu einem OZ besteht</div>
+  <div class="row" style="margin-top:10px;"><button class="btn" id="reload">Neu laden</button><button class="btn" id="clearLines">Linien löschen</button></div>
+  <div class="muted" style="margin-top:10px;font-weight:900;">CORS/Notion (optional)</div>
+  <div class="muted">Wenn Notion/Embed blockiert: Proxy-Prefix setzen.</div>
+  <input id="proxy" type="text" placeholder="Proxy-Prefix (optional)" />`;
+ L.DomEvent.disableClickPropagation(div); return div; }});
+map.addControl(new FilterControl({position:'topright'}));
+
+const UI={status:()=>document.getElementById('status'),proxy:()=>document.getElementById('proxy'),reload:()=>document.getElementById('reload'),clearLines:()=>document.getElementById('clearLines'),
+onko:()=>document.getElementById('f_onko'),visz:()=>document.getElementById('f_visz'),uro:()=>document.getElementById('f_uro'),
+centers:()=>document.getElementById('f_centers'),unassignedCenters:()=>document.getElementById('f_unassigned_centers'),
+partners:()=>document.getElementById('f_partners'),heatmap:()=>document.getElementById('f_heatmap'),praxenOnly:()=>document.getElementById('f_praxen_only'),net:()=>document.getElementById('f_net'),q:()=>document.getElementById('f_q')};
+const Panel={el:()=>document.getElementById('globalPanel'),title:()=>document.getElementById('ptitle'),sub:()=>document.getElementById('psub'),crumb:()=>document.getElementById('pcrumb'),dashboard:()=>document.getElementById('pdashboard'),network:()=>document.getElementById('pnetwork'),kpis:()=>document.getElementById('pkpis'),centers:()=>document.getElementById('pcenters'),zkpis:()=>document.getElementById('zkpis'),znetwork:()=>document.getElementById('znetwork'),zcenters:()=>document.getElementById('zcenters'),zpartners:()=>document.getElementById('zpartners'),tabs:()=>document.getElementById('ptabs'),back:()=>document.getElementById('pback'),reopen:()=>document.getElementById('panelReopen')};
+document.addEventListener('click',e=>{
+  if(e.target && (e.target.id==='poverview' || e.target.id==='pback')){
+    renderOverviewDashboard('dashboard');
+  }
+  if(e.target && e.target.id==='pclose'){
+    Panel.el()?.classList.add('hidden');
+    Panel.reopen()?.classList.remove('hidden');
+  }
+  if(e.target && e.target.id==='panelReopen'){
+    Panel.el()?.classList.remove('hidden');
+    Panel.el()?.classList.remove('minimized');
+    const minBtn = document.getElementById('pmin');
+    if(minBtn){
+      minBtn.textContent = '−';
+      minBtn.title = 'Minimieren';
+    }
+    Panel.reopen()?.classList.add('hidden');
+  }
+  if(e.target && e.target.id==='pmin'){
+    const el = Panel.el();
+    if(el){
+      const minimized = !el.classList.contains('minimized');
+      el.classList.toggle('minimized', minimized);
+      e.target.textContent = minimized ? '+' : '−';
+      e.target.title = minimized ? 'Wiederherstellen' : 'Minimieren';
+    }
+  }
+  if(e.target && e.target.id==='tab_dashboard') setActiveTab('dashboard');
+  if(e.target && e.target.id==='tab_network') setActiveTab('network');
+  if(e.target && e.target.id==='tab_centers') setActiveTab('centers');
+  if(e.target && e.target.id==='tab_zentrum') setActiveTab('zentrum');
+});
+function openPanel(){ Panel.el().classList.remove('hidden'); }
+function setZentrumMode(isDetail){
+  const back = Panel.back?.();
+  const ztab = document.getElementById('tab_zentrum');
+  if(back) back.style.visibility = isDetail ? 'visible' : 'hidden';
+  if(ztab) ztab.classList.toggle('hidden', !isDetail);
+}
+function setActiveTab(tab){
+  const tabs = ['dashboard','network','centers','zentrum'];
+  if(tab !== 'zentrum') currentMainTab = tab;
+  tabs.forEach(name => {
+    document.getElementById('tab_'+name)?.classList.toggle('active', name === tab);
+    document.getElementById('section_'+name)?.classList.toggle('hidden', name !== tab);
+  });
+}
+function esc(s){ return (s??'').toString().replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function num(x){ if(x===null||x===undefined) return null; if(typeof x==='number') return Number.isFinite(x)?x:null; const v=Number(String(x).trim().replace(',','.')); return Number.isFinite(v)?v:null; }
+function withProxy(url){ const p=(UI.proxy()?.value||'').trim(); return p ? p+encodeURIComponent(url) : url; }
+async function fetchJson(url){ const r=await fetch(withProxy(url),{cache:'no-store'}); if(!r.ok) throw new Error(`${r.status} ${r.statusText} – ${url}`); return await r.json(); }
+function isPraxisName(name){ const n=(name||'').toLowerCase(); return n.includes('praxis')||n.includes('mvz')||n.includes('arzt')||n.includes('gemeinschaftspraxis')||n.includes('apotheke'); }
+function netOfAny(inst1,inst2,url){ const n=((inst1||'')+' '+(inst2||'')+' '+(url||'')).toLowerCase(); if(n.includes('helios')) return 'HELIOS'; if(n.includes('sana')) return 'SANA'; if(n.includes('asklepios')) return 'ASKLEPIOS'; if(n.includes('universitätsklinikum')||n.includes('universitaetsklinikum')||n.includes('uniklinik')||n.includes('charité')||n.includes('charite')) return 'UNI'; return 'OTHER'; }
+function haversineKm(aLat,aLon,bLat,bLon){ const R=6371,toRad=x=>x*Math.PI/180; const dLat=toRad(bLat-aLat),dLon=toRad(bLon-aLon); const s1=Math.sin(dLat/2),s2=Math.sin(dLon/2); const aa=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa)); }
+function _normAddr(street,zip,city){ return ((street||'')+'|'+(zip||'')+'|'+(city||'')).toLowerCase().replace(/ß/g,'ss').replace(/straße/g,'strasse').replace(/str\./g,'strasse').replace(/[^a-z0-9|]/g,''); }
+function _addrKeyFromObj(o){ const k=_normAddr(o?.street,o?.zip,o?.city); return (k && k.replace(/\|/g,'').length>=6) ? k : ''; }
+function _mode(arr){ const m=new Map(); for(const x of arr){ if(x) m.set(x,(m.get(x)||0)+1);} let best=null,bestN=0; for(const [k,n] of m.entries()){ if(n>bestN){best=k;bestN=n;}} return {key:best,count:bestN}; }
+function inferHouseAddressKey(oz,partners){ const keys=partners.map(p=>_addrKeyFromObj(p)).filter(Boolean); const {key,count}=_mode(keys); if(key && count>=2) return key; const ozKey=_addrKeyFromObj(oz); if(ozKey) return ozKey; return ''; }
+function isInternalPartner(p,houseKey){ const pKey=_addrKeyFromObj(p); if(houseKey && pKey && pKey===houseKey) return true; if(!houseKey){ const n=((p?.name||'')+' '+(p?.url||'')).toLowerCase(); if(n.includes('helios')) return true; } return false; }
+function getFilters(){ return { onko:UI.onko()?.checked??true, visz:UI.visz()?.checked??true, uro:UI.uro()?.checked??true, centers:UI.centers()?.checked??true, unassignedCenters:UI.unassignedCenters()?.checked??true, partners:UI.partners()?.checked??true, heatmap:UI.heatmap()?.checked??false, praxenOnly:UI.praxenOnly()?.checked??true, net:UI.net()?.value??'ALL', q:(UI.q()?.value??'').trim().toLowerCase(), organ:currentOrganFilter||'ALL' }; }
+function matchOZ(o,f){ if(o.domain==='ONKO'&&!f.onko) return false; if(o.domain==='VISZ'&&!f.visz) return false; if(o.domain==='URO'&&!f.uro) return false; if(f.net!=='ALL'&&o.network!==f.net) return false; if(f.q){ const hay=((o.name||'')+' '+(o.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
+function matchSearchOnly(x,f){ if(f.q){ const hay=((x.name||'')+' '+(x.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
+
+
+function normOrgan(x){
+  return (x||'').toString().trim().toLowerCase();
+}
+function centerMatchesOrgan(center, f){
+  if(!f || f.organ === 'ALL') return true;
+  return normOrgan(center.organ) === normOrgan(f.organ);
+}
+
+function centerMatchesNetwork(center, f){
+  if(!f || f.net === 'ALL') return true;
+  if(!DB) return true;
+  const ozKeys = DB.centerToOZKeys?.get(String(center.id)) || [];
+  if(!ozKeys.length) return true; // unassigned centers remain visible independently
+  return ozKeys.some(k => {
+    const oz = DB.ozByKey.get(k);
+    return oz && oz.network === f.net;
+  });
+}
+function partnerMatchesNetwork(partner, f){
+  if(!f || f.net === 'ALL') return true;
+  if(!DB) return true;
+  const ozKeys = DB.partnerToOZKeys?.get(String(partner.id)) || [];
+  if(!ozKeys.length) return true; // unassigned partners remain visible independently
+  return ozKeys.some(k => {
+    const oz = DB.ozByKey.get(k);
+    return oz && oz.network === f.net;
+  });
+}
+
+function organOptionsHtml(){
+  const organs = [...new Set((DB?.CENTERS||[]).map(c => (c.organ||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+  return '<option value="ALL">Alle Organe</option>' + organs.map(o => `<option value="${esc(o)}"${currentOrganFilter===o?' selected':''}>${esc(o)}</option>`).join('');
+}
+
+function normalizeClinics(rows){ const out=[]; for(const r of rows||[]){ const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? r.id ?? null; if(clinicNr==null) continue; out.push({clinic_nr:String(clinicNr),name:r.inst1||r.name||'',street:r.street||'',zip:r.zip||'',loc:r.loc||r.ort||''}); } return out; }
+function normalizeOZ(rows,domain,clinicByNr){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? null; const clinic=(clinicNr!=null&&clinicByNr)?clinicByNr.get(String(clinicNr)):null; out.push({id:r.id,key:`${domain}:${r.id}`,domain,name:r.inst1||r.name||`${domain} ${r.id}`,city:r.loc||r.ort||(clinic?.loc||''),lat,lon,network:netOfAny(r.inst1,r.inst2,r.url),street:r.street||clinic?.street||'',zip:r.zip||clinic?.zip||'',inst2:r.inst2||'',url:r.url||''}); } return out; }
+function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
+function normalizePartners(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Partner ${r.id}`,city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',phone:r.phone||'',email:r.p_email||r.email||'',url:r.url||'',contact:[r.p_title,r.p_fname,r.p_lname].filter(Boolean).join(' ').trim(),lat,lon}); } return out; }
+function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
+  const ozToCenters={}; function add(domain,n_id,c_id){ const k=`${domain}:${n_id}`; (ozToCenters[k] ||= []).push(c_id); }
+  for(const r of oncos_centers||[]) add('ONKO',r.n_id,r.c_id); for(const r of viszes_centers||[]) add('VISZ',r.n_id,r.c_id); for(const r of uros_centers||[]) add('URO',r.n_id,r.c_id);
+  const centerToPartners={};
+  const partnerToCenterIds = new Map();
+  for(const r of partners_centers||[]){
+    (centerToPartners[r.c_id] ||= []).push(r.p_id);
+    const k = String(r.p_id);
+    if(!partnerToCenterIds.has(k)) partnerToCenterIds.set(k, []);
+    partnerToCenterIds.get(k).push(String(r.c_id));
+  }
+  const ozToPartners={}; for(const [ozKey,cids] of Object.entries(ozToCenters)){ const set=new Set(); for(const cid of cids) for(const pid of (centerToPartners[cid]||[])) set.add(pid); ozToPartners[ozKey]=[...set]; }
+  const allAssignedCenterIds=new Set(Object.values(ozToCenters).flat().map(x=>String(x)));
+  const allLinkedPartnerIds=new Set(Object.values(ozToPartners).flat().map(x=>String(x)));
+
+  const centerToOZKeys = new Map();
+  for(const [ozKey, cids] of Object.entries(ozToCenters)){
+    for(const cid of cids){
+      const k = String(cid);
+      if(!centerToOZKeys.has(k)) centerToOZKeys.set(k, []);
+      centerToOZKeys.get(k).push(ozKey);
+    }
+  }
+
+  const partnerToOZKeys = new Map();
+  for(const [ozKey, pids] of Object.entries(ozToPartners)){
+    for(const pid of pids){
+      const k = String(pid);
+      if(!partnerToOZKeys.has(k)) partnerToOZKeys.set(k, []);
+      partnerToOZKeys.get(k).push(ozKey);
+    }
+  }
+
+  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, partnerToOZKeys, partnerToCenterIds};
+}
+function addLine(a,b,opts){ (freezeLines ? frozenLinesLayer : linesLayer).addLayer(L.polyline([a,b],opts)); }
+function updateVisibility(){
+  const z=map.getZoom(), f=getFilters(), showPoints=(z>=9);
+
+  if((f.centers || f.unassignedCenters) && showPoints){
+    if(!map.hasLayer(centerLayer)) map.addLayer(centerLayer);
+  } else {
+    if(map.hasLayer(centerLayer)) map.removeLayer(centerLayer);
+  }
+
+  if(f.partners && showPoints){
+    if(!map.hasLayer(partnerLayer)) map.addLayer(partnerLayer);
+  } else {
+    if(map.hasLayer(partnerLayer)) map.removeLayer(partnerLayer);
+  }
+
+  // Nationale Heatmap: unabhängig vom Zoom
+  if(f.heatmap){
+    if(heatLayer && !map.hasLayer(heatLayer)) map.addLayer(heatLayer);
+  } else {
+    if(heatLayer && map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+  }
+}
+function drawLinks(){
+  if(!DB) return;
+  if(!freezeLines) linesLayer.clearLayers();
+  if(map.getZoom() < 9) return;
+  const f=getFilters();
+  const visibleOZ=DB.OZ.filter(o=>matchOZ(o,f));
+  for(const oz of visibleOZ){
+    const ozM=ozMarkerByKey.get(oz.key); if(!ozM) continue; const ozLL=ozM.getLatLng();
+    if(f.centers){ for(const cid of (DB.ozToCenters[oz.key]||[])){ const cm=centerMarkerById.get(String(cid)); if(cm) addLine(ozLL,cm.getLatLng(),{color:'#94a3b8',weight:1.8,opacity:0.22,pane:'paneLines'}); } }
+    if(f.partners){ for(const pid of (DB.ozToPartners[oz.key]||[])){ const pm=partnerMarkerById.get(String(pid)); if(pm) addLine(ozLL,pm.getLatLng(),{color:COL_PARTNER,weight:1.6,opacity:0.18,pane:'paneLines'}); } }
+  }
+  if(selectedOZKey){
+    const ozM=ozMarkerByKey.get(selectedOZKey); if(!ozM) return; const ozLL=ozM.getLatLng();
+    if(f.centers){ for(const cid of (DB.ozToCenters[selectedOZKey]||[])){ const cm=centerMarkerById.get(String(cid)); if(cm) addLine(ozLL,cm.getLatLng(),{color:'#64748b',weight:2.6,opacity:0.60,pane:'paneLines'}); } }
+    if(f.partners){ for(const pid of (DB.ozToPartners[selectedOZKey]||[])){ const pm=partnerMarkerById.get(String(pid)); if(pm) addLine(ozLL,pm.getLatLng(),{color:COL_PARTNER,weight:2.3,opacity:0.42,pane:'paneLines'}); } }
+  }
+}
+
+function networkColor(net){
+  if(net === 'HELIOS') return '#a855f7';
+  if(net === 'SANA') return '#22c55e';
+  if(net === 'ASKLEPIOS') return '#f59e0b';
+  if(net === 'UNI') return '#3b82f6';
+  return '#94a3b8';
+}
+function kpiHtml(arr){
+  return arr.map(x=>`<div class="smallkpi"><div class="n">${x.n}</div><div class="l">${x.l}</div></div>`).join('');
+}
+function renderOverviewDashboard(preferredTab){
+  if(!DB) return;
+  openPanel();
+
+  setZentrumMode(false);
+  setActiveTab(preferredTab || currentMainTab || 'dashboard');
+  Panel.title().textContent = 'OncoMap Deutschland';
+  Panel.sub().textContent = 'Netzwerk-Dashboard und globale Filter';
+  if(Panel.crumb()) Panel.crumb().textContent = '';
+  selectedOZKey = null;
+  if(Panel.crumb()) Panel.crumb().textContent = '';
+  selectedOZKey = null;
+
+  const stats = new Map();
+  for(const oz of DB.OZ){
+    const net = oz.network || 'OTHER';
+    if(!stats.has(net)) stats.set(net, {oz:new Set(), centers:new Set(), partners:new Set(), praxen:new Set()});
+    const s = stats.get(net);
+    s.oz.add(oz.key);
+    for(const cid of (DB.ozToCenters[oz.key] || [])) s.centers.add(String(cid));
+    for(const pid of (DB.ozToPartners[oz.key] || [])){
+      s.partners.add(String(pid));
+      const p = DB.partnerById.get(String(pid));
+      if(p && isPraxisName(p.name)) s.praxen.add(String(pid));
+    }
+  }
+  const f = getFilters();
+  const rows = [...stats.entries()].map(([net, s]) => {
+    const ozKeys = [...s.oz].filter(k => {
+      const oz = DB.ozByKey.get(k);
+      return oz && (f.net === 'ALL' || oz.network === f.net);
+    });
+    const centerIds = [...s.centers].filter(cid => {
+      const c = DB.centerById.get(String(cid));
+      return c && centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f);
+    });
+    const partnerIds = [...s.partners].filter(pid => {
+      const p = DB.partnerById.get(String(pid));
+      return p && partnerMatchesNetwork(p, f) && (f.organ === 'ALL' || (DB.partnerToCenterIds?.get(String(pid)) || []).some(cid => centerIds.includes(String(cid))));
+    });
+    const praxisIds = partnerIds.filter(pid => {
+      const p = DB.partnerById.get(String(pid));
+      return p && isPraxisName(p.name);
+    });
+    return {net, oz: ozKeys.length, centers: centerIds.length, partners: partnerIds.length, praxen: praxisIds.length};
+  }).filter(r => f.net === 'ALL' || r.net === f.net).sort((a,b)=>b.partners-a.partners);
+  const maxPartners = Math.max(1, ...rows.map(r=>r.partners), 1);
+
+  const filteredCentersGlobal = (DB.CENTERS||[]).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f));
+  const filteredCenterIdsGlobal = new Set(filteredCentersGlobal.map(c => String(c.id)));
+  const filteredPartnersGlobal = (DB.PARTNERS||[]).filter(p => partnerMatchesNetwork(p, f) && (f.organ === 'ALL' || (DB.partnerToCenterIds?.get(String(p.id)) || []).some(cid => filteredCenterIdsGlobal.has(String(cid)))));
+  const filteredPraxenGlobal = filteredPartnersGlobal.filter(p => isPraxisName(p.name));
+
+  Panel.network().innerHTML = `
+    <div class="st">Netzwerk-Dashboard</div>
+    <div class="dashcard">
+      <div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>
+      <div style="font-size:11px;color:rgba(0,0,0,.62);margin-bottom:8px;">Netzwerkfilter aktiv: <b>${esc(f.net)}</b>${f.organ!=='ALL' ? ' · Organ: <b>'+esc(f.organ)+'</b>' : ''}</div>
+      <div class="smallgrid">${kpiHtml([
+        {n: DB.OZ.filter(o=>matchOZ(o,f)).length, l:'OZ gesamt'},
+        {n: filteredCentersGlobal.length, l:'Organzentren'},
+        {n: filteredPartnersGlobal.length, l:'Partner'}
+      ])}</div>
+      ${rows.map(r => `
+        <div class="dashrow">
+          <div style="font-size:12px;font-weight:800;color:${networkColor(r.net)}">${r.net}</div>
+          <div class="bar"><div class="fill" style="width:${Math.max(3, (r.partners/maxPartners)*100)}%; background:${networkColor(r.net)}"></div></div>
+          <div style="font-size:11px;color:rgba(0,0,0,.65);text-align:right">${r.partners}</div>
+        </div>
+        <div style="font-size:11px;color:rgba(0,0,0,.62);margin-top:2px">${r.oz} OZ · ${r.centers} Organzentren · ${r.praxen} Praxen/MVZ</div>
+      `).join('')}
+    </div>`;
+  const organSelectHtml = `<div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>`;
+  Panel.dashboard().innerHTML = `
+    <div class="st">Übersicht</div>
+    <div class="dashcard">
+      ${organSelectHtml}
+      <div style="font-size:11px;color:rgba(0,0,0,.62);margin-bottom:8px;">Netzwerkfilter aktiv: <b>${esc(f.net)}</b>${f.organ!=='ALL' ? ' · Organ: <b>'+esc(f.organ)+'</b>' : ''}</div>
+    </div>`;
+  Panel.kpis().innerHTML = kpiHtml([
+    {n: DB.OZ.filter(o=>matchOZ(o,f)).length, l:'OZ gesamt'},
+    {n: filteredCentersGlobal.length, l:'Organzentren'},
+    {n: filteredPartnersGlobal.length, l:'Partner'},
+    {n: filteredPraxenGlobal.length, l:'Praxen/MVZ'}
+  ]);
+  const organSelectBlock = `<div class="item compact" style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>`;
+  if(f.organ !== 'ALL'){
+    
+  const showWith = document.getElementById('filter_centers_with_oz')?.checked ?? true;
+  const showWithout = document.getElementById('filter_centers_without_oz')?.checked ?? true;
+
+  const overviewCenters = filteredCentersGlobal.filter(c=>{
+    const ozKeys = DB.centerToOZKeys?.get(String(c.id)) || [];
+    const hasOZ = ozKeys.length>0;
+    if(hasOZ && !showWith) return false;
+    if(!hasOZ && !showWithout) return false;
+    return true;
+  })
+
+      .slice()
+      .sort((a,b)=>(a.city||'').localeCompare(b.city||'','de') || (a.name||'').localeCompare(b.name||'','de'));
+    Panel.centers().innerHTML = organSelectBlock + (overviewCenters.length
+      ? overviewCenters.map(c => {
+          const ozKeys = DB.centerToOZKeys?.get(String(c.id)) || [];
+          const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
+          return `<div class="item compact">
+            <div class="t"><span class="tag org">${esc(c.organ||'Organ')}</span>${esc(c.name||'Organzentrum')}</div>
+            <div class="m">${esc(c.city||'')}</div>
+            ${ozNames.length ? `<div class="m">Zugeordnet zu: ${esc(ozNames.slice(0,3).join(' · '))}${ozNames.length>3 ? ' …' : ''}</div>` : `<div class="m">Ohne OZ-Zuordnung</div>`}
+          </div>`;
+        }).join('')
+      : '<div class="muted">Keine Organzentren für den aktuellen Organ-/Netzwerkfilter gefunden.</div>');
+  } else {
+    Panel.centers().innerHTML = organSelectBlock + '<div class="muted">Wähle ein Organ. Der Netzwerkfilter rechts wird dabei automatisch mitberücksichtigt, z. B. Helios + Harnblase.</div>';
+  }
+
+}
+
+
+function getPanelPartnerFilters(){
+  return {
+    praxen: document.getElementById('df_praxen')?.checked ?? true,
+    other: document.getElementById('df_other')?.checked ?? true
+  };
+}
+
+function getZentrumPartnerFilters(){
+  return {
+    praxen: document.getElementById('zf_praxen')?.checked ?? true,
+    other: document.getElementById('zf_other')?.checked ?? true
+  };
+}
+
+function renderPanelForOZ(ozKey){
+  const oz=DB?.ozByKey?.get(ozKey); if(!oz) return;
+  openPanel();
+  setZentrumMode(true);
+  setActiveTab('zentrum');
+  Panel.title().textContent = oz.name || 'Zentrum';
+  Panel.sub().textContent = `${oz.domain}${oz.city ? ' · '+oz.city : ''} · Netzwerk: ${oz.network||'—'}`;
+  if(Panel.crumb()) Panel.crumb().textContent = `Deutschland › ${oz.network||'OTHER'}${getFilters().organ!=='ALL' ? ' › '+getFilters().organ : ''} › ${oz.name||'Zentrum'}`;
+
+  const f = getFilters();
+  const centers=(DB.ozToCenters[ozKey]||[]).map(id=>DB.centerById.get(String(id))).filter(Boolean).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f));
+  const filteredCenterIds = new Set(centers.map(c => String(c.id)));
+  const partners=(DB.ozToPartners[ozKey]||[]).filter(pid => {
+    const linkedCenters = (DB.partnerToCenterIds?.get(String(pid)) || []);
+    return f.organ === 'ALL' || linkedCenters.some(cid => filteredCenterIds.has(String(cid)));
+  }).map(id=>DB.partnerById.get(String(id))).filter(Boolean).filter(p => partnerMatchesNetwork(p, f));
+
+  const linkedPartnersForNetwork = DB.OZ.filter(x => x.network === oz.network).flatMap(x => DB.ozToPartners[x.key] || []);
+  const uniqueLinkedPartnersForNetwork = new Set(linkedPartnersForNetwork.map(String));
+  const networkOZ = DB.OZ.filter(x => x.network === oz.network);
+  const networkCenters = new Set(networkOZ.flatMap(x => (DB.ozToCenters[x.key] || []).map(String)).filter(cid => { const c = DB.centerById.get(String(cid)); return c && centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f); }));
+  const networkPraxen = [...uniqueLinkedPartnersForNetwork].filter(pid => {
+    const p = DB.partnerById.get(String(pid));
+    return p && isPraxisName(p.name) && partnerMatchesNetwork(p, f);
+  });
+  const radius = (km) => partners.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon) && haversineKm(oz.lat, oz.lon, p.lat, p.lon) <= km).length;
+
+  const pf = getZentrumPartnerFilters();
+  const visiblePartners = partners.filter(p => {
+    const praxis = isPraxisName(p.name);
+    if(praxis && !pf.praxen) return false;
+    if(!praxis && !pf.other) return false;
+    return true;
+  });
+
+  Panel.zkpis().innerHTML = kpiHtml([
+    {n: centers.length, l:'Organzentren'},
+    {n: visiblePartners.length, l:'Partner gesamt'},
+    {n: visiblePartners.filter(p=>isPraxisName(p.name)).length, l:'Praxen/MVZ'},
+    {n: visiblePartners.filter(p=>!isPraxisName(p.name)).length, l:'Weitere Partner'}
+  ]);
+
+  Panel.znetwork().innerHTML = `
+    <div class="st">Netzwerk ${esc(oz.network || '—')}</div>
+    <div class="dashcard">
+      <div class="smallgrid">${kpiHtml([
+        {n: networkOZ.length, l:'OZ im Netzwerk'},
+        {n: networkCenters.size, l:'Organzentren'},
+        {n: uniqueLinkedPartnersForNetwork.size, l:'Partner'},
+        {n: networkPraxen.length, l:'Praxen/MVZ'},
+        {n: radius(10), l:'≤ 10 km'},
+        {n: radius(25), l:'≤ 25 km'}
+      ])}</div>
+    </div>`;
+
+  Panel.zcenters().innerHTML = centers.length ? centers
+    .sort((a,b)=>(a.organ||'').localeCompare(b.organ||'')||(a.name||'').localeCompare(b.name||''))
+    .map(c=>`<div class="item compact"><div class="t"><span class="tag org">Organzentrum</span>${esc(c.organ?c.organ+' · ':'')}${esc(c.name||'')}</div><div class="m">${esc(c.city||'')}</div></div>`).join('')
+    : `<div class="muted">Keine Organzentren gefunden.</div>`;
+
+  function partnerCard(p){
+    const addr=[p.street,p.zip,p.city].filter(Boolean).join(', ');
+    const dist=(Number.isFinite(p.lat)&&Number.isFinite(p.lon)) ? haversineKm(oz.lat,oz.lon,p.lat,p.lon) : null;
+    const praxis=isPraxisName(p.name);
+    const tag=praxis?`<span class="tag praxis">Praxis/MVZ</span>`:`<span class="tag ext">Partner</span>`;
+    const links=[p.phone?`<a href="tel:${esc(p.phone)}">☎ ${esc(p.phone)}</a>`:'',p.email?`<a href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a>`:'',p.url?`<a href="${esc(p.url)}" target="_blank" rel="noreferrer">Website</a>`:''].filter(Boolean).join(' · ');
+    return `<div class="item compact"><div class="t">${tag} ${esc(p.name||'Partner')}</div>${addr?`<div class="m">${esc(addr)}</div>`:''}${dist!=null?`<div class="m">Entfernung: ${dist.toFixed(1)} km</div>`:''}${p.contact?`<div class="m">Kontakt: ${esc(p.contact)}</div>`:''}${links?`<div class="m links">${links}</div>`:''}</div>`;
+  }
+  const praxis=visiblePartners.filter(p=>isPraxisName(p.name)), others=visiblePartners.filter(p=>!isPraxisName(p.name));
+  const sorted=[...praxis,...others].sort((a,b)=>{ const da=(Number.isFinite(a.lat)&&Number.isFinite(a.lon))?haversineKm(oz.lat,oz.lon,a.lat,a.lon):Infinity; const db=(Number.isFinite(b.lat)&&Number.isFinite(b.lon))?haversineKm(oz.lat,oz.lon,b.lat,b.lon):Infinity; if(da!==db) return da-db; return (a.name||'').localeCompare(b.name||''); });
+  Panel.zpartners().innerHTML = sorted.length ? sorted.map(partnerCard).join('') : `<div class="muted">Keine Partner gefunden.</div>`;
+}
+function render(){
+  if(!DB) return;
+  if(!freezeLines) linesLayer.clearLayers();
+  onkoLayer.clearLayers(); viszLayer.clearLayers(); uroLayer.clearLayers(); centerLayer.clearLayers(); partnerLayer.clearLayers();
+  if(heatLayer && map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+  heatLayer = null;
+  ozMarkerByKey.clear(); centerMarkerById.clear(); partnerMarkerById.clear();
+  const f=getFilters();
+  const heatPoints = [];
+
+  for(const o of DB.OZ){
+    if(!matchOZ(o,f)) continue;
+    const color=o.domain==='ONKO'?COL_ONKO:(o.domain==='VISZ'?COL_VISZ:COL_URO), pane=o.domain==='ONKO'?'paneOnko':'paneViszUro';
+    const m=L.circleMarker([o.lat,o.lon],{radius:8,color,weight:2,fillOpacity:.85,fillColor:color,pane}).bindPopup(`${esc(o.name)} (${esc(o.domain)})<br><span style="color:#64748b">${esc(o.city||'')}</span>`);
+    m.on('click',()=>{ selectedOZKey=o.key; drawLinks(); renderPanelForOZ(o.key); });
+    ozMarkerByKey.set(o.key,m);
+    if(o.domain==='ONKO') onkoLayer.addLayer(m); else if(o.domain==='VISZ') viszLayer.addLayer(m); else uroLayer.addLayer(m);
+    if(Number.isFinite(o.lat) && Number.isFinite(o.lon)) heatPoints.push([o.lat, o.lon, 1.0]);
+  }
+
+  if(f.centers || f.unassignedCenters){
+    for(const c of DB.CENTERS){
+      const cid = String(c.id);
+      const isAssigned = DB.allAssignedCenterIds.has(cid);
+
+      // Unabhängige Logik:
+      // - "Organzentren" zeigt nur zugeordnete
+      // - "Organzentren ohne OZ" zeigt nur unzugeordnete
+      if(isAssigned && !f.centers) continue;
+      if(!isAssigned && !f.unassignedCenters) continue;
+
+      if(!matchSearchOnly({name:c.name,city:c.city},f)) continue;
+      if(!centerMatchesOrgan(c, f)) continue;
+      if(!centerMatchesNetwork(c, f)) continue;
+
+      const m = L.circleMarker([c.lat,c.lon], {
+        radius: 5,
+        color: COL_ORG,
+        weight: 2,
+        fillOpacity: isAssigned ? 0.8 : 0.45,
+        fillColor: COL_ORG,
+        pane: 'paneOrg'
+      }).bindPopup(`${esc(c.name)}${c.organ ? ' · '+esc(c.organ) : ''}${!isAssigned ? '<br><span style="color:#64748b">(ohne OZ-Zuordnung)</span>' : ''}`);
+
+      centerMarkerById.set(cid, m);
+      centerLayer.addLayer(m);
+      if(Number.isFinite(c.lat) && Number.isFinite(c.lon)) heatPoints.push([c.lat, c.lon, 0.6]);
+
+
+    }
+  }
+
+  if(f.partners){
+    for(const p of DB.PARTNERS){
+      const pid=String(p.id), praxis=isPraxisName(p.name);
+      if(f.praxenOnly && !praxis) continue;
+      if(!matchSearchOnly({name:p.name,city:p.city},f)) continue;
+      const linked=DB.allLinkedPartnerIds.has(pid), color=praxis?COL_PRAX:COL_PARTNER, addr=[p.street,p.zip,p.city].filter(Boolean).join(', ');
+      const popup=`<div style="min-width:280px;max-width:520px;"><div style="font-weight:900">${esc(p.name||'')}</div><div style="margin-top:4px;color:#64748b;font-size:12px;">${praxis?'Praxis/MVZ':'Partner'}${!linked?' · ohne OZ-Linie':''}</div>${addr?`<div style="margin-top:6px;">${esc(addr)}</div>`:''}${p.contact?`<div style="margin-top:6px;color:#64748b;font-size:12px;">Kontakt: ${esc(p.contact)}</div>`:''}${p.phone?`<div style="margin-top:6px;"><a href="tel:${esc(p.phone)}">☎ ${esc(p.phone)}</a></div>`:''}${p.email?`<div style="margin-top:4px;"><a href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a></div>`:''}${p.url?`<div style="margin-top:4px;"><a href="${esc(p.url)}" target="_blank" rel="noreferrer">Website</a></div>`:''}</div>`;
+      const m=L.circleMarker([p.lat,p.lon],{radius:4,color,weight:2,fillOpacity:linked?.75:.35,fillColor:color,pane:'panePartner'}).bindPopup(popup);
+      partnerMarkerById.set(pid,m); partnerLayer.addLayer(m);
+    }
+  }
+  if(heatPoints.length && window.L && typeof L.heatLayer === 'function'){ heatLayer = L.heatLayer(heatPoints, {radius: 36, blur: 28, maxZoom: 10, minOpacity: 0.4, gradient: {0.2:'rgba(59,130,246,0.55)', 0.45:'rgba(16,185,129,0.75)', 0.7:'rgba(245,158,11,0.9)', 1.0:'rgba(239,68,68,1)'}}); }
+  updateVisibility(); drawLinks(); if(selectedOZKey) renderPanelForOZ(selectedOZKey);
+}
+async function loadAll(){
+  linesLayer.clearLayers(); frozenLinesLayer.clearLayers(); UI.status().textContent='Lade alle 10 APIs…';
+  try{
+    const [clinics,centers,oncos,viszes,uros,partners,oncosCenters,viszesCenters,urosCenters,partnersCenters]=await Promise.all([
+      fetchJson(API.clinics),fetchJson(API.centers),fetchJson(API.oncos),fetchJson(API.viszes),fetchJson(API.uros),fetchJson(API.partners),
+      fetchJson(API.oncos_centers),fetchJson(API.viszes_centers),fetchJson(API.uros_centers),fetchJson(API.partners_centers)
+    ]);
+    const CLINICS=normalizeClinics(clinics), clinicByNr=new Map(CLINICS.map(c=>[String(c.clinic_nr),c]));
+    const OZ=[...normalizeOZ(oncos,'ONKO',clinicByNr),...normalizeOZ(viszes,'VISZ',clinicByNr),...normalizeOZ(uros,'URO',clinicByNr)];
+    const CENTERS=normalizeCenters(centers), PARTNERS=normalizePartners(partners), links=buildLinks(oncosCenters,viszesCenters,urosCenters,partnersCenters);
+    DB={CLINICS,clinicByNr,OZ,CENTERS,PARTNERS,...links}; DB.ozByKey=new Map(DB.OZ.map(x=>[x.key,x])); DB.centerById=new Map(DB.CENTERS.map(x=>[String(x.id),x])); DB.partnerById=new Map(DB.PARTNERS.map(x=>[String(x.id),x]));
+    UI.status().innerHTML=`✅ Geladen: ${OZ.length} OZ · ${CENTERS.length} Organzentren · ${PARTNERS.length} Partner<br><span class="ok">Alle 10 APIs aktiv.</span>`;
+    render();
+    renderOverviewDashboard();
+    openPanel();
+  
+  }catch(err){
+    console.error(err);
+    UI.status().innerHTML=`<span class="bad">Fehler beim Laden</span>\n${esc(err.message||String(err))}\n\nWenn Notion/Embed blockiert: Proxy-Prefix setzen.`;
+  }
+}
+document.addEventListener('change',e=>{ if(e.target && e.target.id==='freeze_lines') freezeLines=e.target.checked; });
+['f_onko','f_visz','f_uro','f_centers','f_unassigned_centers','f_partners','f_heatmap','f_praxen_only','f_net'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{ render(); renderOverviewDashboard(); if(selectedOZKey) renderPanelForOZ(selectedOZKey); }));
+document.getElementById('f_q')?.addEventListener('input',()=>{ render(); renderOverviewDashboard(); if(selectedOZKey) renderPanelForOZ(selectedOZKey); });
+UI.reload()?.addEventListener('click',()=>loadAll());
+UI.clearLines()?.addEventListener('click',()=>{ linesLayer.clearLayers(); frozenLinesLayer.clearLayers(); });
+map.on('zoomend',()=>{ updateVisibility(); drawLinks(); });
+loadAll();
+
+// UI-Overlays dürfen keine Kartenklicks auslösen
+(function(){
+  const isAllowedButton = (t) => t && (
+    t.id === 'poverview' || t.id === 'pclose' || t.id === 'pback' || t.id === 'pmin' || t.id === 'panelReopen' ||
+    t.id === 'tab_dashboard' || t.id === 'tab_network' || t.id === 'tab_centers' || t.id === 'tab_zentrum' ||
+    (t.closest && (
+      t.closest('#poverview') || t.closest('#pclose') || t.closest('#pback') || t.closest('#pmin') || t.closest('#panelReopen') ||
+      t.closest('#tab_dashboard') || t.closest('#tab_network') || t.closest('#tab_centers') || t.closest('#tab_zentrum')
+    ))
+  );
+  const bind = (el) => {
+    if(!el) return;
+    const events = ['click','dblclick','mousedown','mouseup','pointerdown','pointerup','touchstart','touchend','contextmenu'];
+    for(const ev of events){
+      el.addEventListener(ev, (e) => {
+        if(isAllowedButton(e.target)) return;
+        e.stopPropagation();
+      }, {capture:true});
+    }
+    el.addEventListener('wheel', (e) => e.stopPropagation(), {capture:true});
+  };
+  bind(document.querySelector('.ctl'));
+  bind(document.getElementById('globalPanel'));
+})();
+
+
+
+
+document.addEventListener('change', (e) => {
+  if(e.target && e.target.classList && e.target.classList.contains('global-organ-select')){
+    currentOrganFilter = e.target.value || 'ALL';
+    render();
+    if(selectedOZKey){
+      renderPanelForOZ(selectedOZKey);
+    } else {
+      renderOverviewDashboard(currentMainTab);
+    }
+  }
+});
+
+
+document.addEventListener('change', (e) => {
+  if(e.target && (e.target.id === 'zf_praxen' || e.target.id === 'zf_other')){
+    if(selectedOZKey) renderPanelForOZ(selectedOZKey);
+  }
+});
+
+
+
+
+document.addEventListener('change',e=>{
+  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz')){
+    renderOverviewDashboard(currentMainTab);
+  }
+});
+
+</script>
+</body>
+</html>
