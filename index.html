@@ -532,6 +532,7 @@ function renderOverviewDashboard(preferredTab){
   const networkShowWith = document.getElementById('network_filter_centers_with_oz')?.checked ?? true;
   const networkShowWithout = document.getElementById('network_filter_centers_without_oz')?.checked ?? true;
   const networkListNetFilter = document.getElementById('network_list_net_filter')?.value || 'ALL';
+  const networkHeliosDirectOnly = document.getElementById('network_filter_helios_direct_only')?.checked ?? false;
 
   function listEntryKey(center){
     return String(center?.id || '');
@@ -559,6 +560,10 @@ function renderOverviewDashboard(preferredTab){
   const seenUnassigned = new Set();
   for(const c of filteredCentersGlobal){
     const ozKeys = effectiveNetworkOzKeysForCenter(c);
+    if(networkHeliosDirectOnly && networkListNetFilter === 'HELIOS'){
+      const hasHeliosOZ = ozKeys.some(k => DB.ozByKey.get(k)?.network === 'HELIOS');
+      if(!hasHeliosOZ) continue;
+    }
     const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
     const dedupeKey = listEntryKey(c);
 
@@ -612,6 +617,7 @@ function renderOverviewDashboard(preferredTab){
           <option value="UNI" ${networkListNetFilter==='UNI'?'selected':''}>Uniklinik</option>
           <option value="OTHER" ${networkListNetFilter==='OTHER'?'selected':''}>Sonstige</option>
         </select>
+        <label style="margin-top:6px;font-size:12px;"><input type="checkbox" id="network_filter_helios_direct_only" ${networkHeliosDirectOnly ? 'checked' : ''}> bei HELIOS nur mit direkter HELIOS-OZ-Zuordnung</label>
         <div style="font-size:11px;color:rgba(0,0,0,.55);margin-top:4px;">Für nicht-direkte Zuordnungen greift ein Namensfilter (z. B. "Helios" im Zentrumsnamen).</div>
       </div>
       <div class="smallgrid">${kpiHtml([
@@ -951,7 +957,7 @@ document.addEventListener('change', (e) => {
 
 
 document.addEventListener('change',e=>{
-  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz' || e.target.id==='network_list_net_filter')){
+  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz' || e.target.id==='network_list_net_filter' || e.target.id==='network_filter_helios_direct_only')){
     renderOverviewDashboard(currentMainTab);
   }
 });
