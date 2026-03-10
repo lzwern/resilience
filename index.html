@@ -266,6 +266,70 @@ function getFilters(){ return { onko:UI.onko()?.checked??true, visz:UI.visz()?.c
 function matchOZ(o,f){ if(o.domain==='ONKO'&&!f.onko) return false; if(o.domain==='VISZ'&&!f.visz) return false; if(o.domain==='URO'&&!f.uro) return false; if(f.net!=='ALL'&&o.network!==f.net) return false; if(f.q){ const hay=((o.name||'')+' '+(o.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
 function matchSearchOnly(x,f){ if(f.q){ const hay=((x.name||'')+' '+(x.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
 
+function centerGroupId(regNr){
+  const v=(regNr||'').toString().trim();
+  if(!v) return '';
+  const m=v.match(/^(.*-\d+)-\d+$/);
+  return m ? m[1] : v;
+}
+
+function buildCenterAssignments(centers,oncos_centers,viszes_centers,uros_centers){
+  const domainMap={OZ:'ONKO',Viszeral:'VISZ',Uro:'URO'};
+  const directByCenter=new Map();
+  const addDirect=(centerId,ref)=>{
+    const key=String(centerId);
+    if(!directByCenter.has(key)) directByCenter.set(key, new Set());
+    directByCenter.get(key).add(`${ref.type}:${ref.id}`);
+  };
+
+  for(const r of oncos_centers||[]) addDirect(r.c_id,{type:'OZ',id:r.n_id});
+  for(const r of viszes_centers||[]) addDirect(r.c_id,{type:'Viszeral',id:r.n_id});
+  for(const r of uros_centers||[]) addDirect(r.c_id,{type:'Uro',id:r.n_id});
+
+  const groupedCenterIds=new Map();
+  for(const c of centers||[]){
+    const gKey=`${normOrgan(c.organ)}|${centerGroupId(c.reg_nr)}`;
+    if(!groupedCenterIds.has(gKey)) groupedCenterIds.set(gKey, []);
+    groupedCenterIds.get(gKey).push(String(c.id));
+  }
+
+  const resolvedByCenter=new Map();
+  for(const c of centers||[]){
+    resolvedByCenter.set(String(c.id), new Set(directByCenter.get(String(c.id)) || []));
+  }
+
+  for(const ids of groupedCenterIds.values()){
+    const shared=new Set();
+    for(const id of ids){
+      for(const ref of (resolvedByCenter.get(id) || [])) shared.add(ref);
+    }
+    if(!shared.size) continue;
+    for(const id of ids){
+      const current=resolvedByCenter.get(id) || new Set();
+      for(const ref of shared) current.add(ref);
+      resolvedByCenter.set(id, current);
+    }
+  }
+
+  const toOZKey=(ref)=>{
+    const [t,id]=String(ref).split(':');
+    const domain=domainMap[t];
+    if(!domain || !id) return null;
+    return `${domain}:${id}`;
+  };
+
+  const directOZKeysByCenter=new Map();
+  const resolvedOZKeysByCenter=new Map();
+  for(const c of centers||[]){
+    const cid=String(c.id);
+    const direct=[...(directByCenter.get(cid) || [])].map(toOZKey).filter(Boolean);
+    const resolved=[...(resolvedByCenter.get(cid) || [])].map(toOZKey).filter(Boolean);
+    directOZKeysByCenter.set(cid,direct);
+    resolvedOZKeysByCenter.set(cid,resolved);
+  }
+  return {directOZKeysByCenter,resolvedOZKeysByCenter};
+}
+
 
 function normOrgan(x){
   return (x||'').toString().trim().toLowerCase();
@@ -306,8 +370,15 @@ function normalizeOZ(rows,domain,clinicByNr){ const out=[]; for(const r of rows|
 function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
 function normalizePartners(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Partner ${r.id}`,city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',phone:r.phone||'',email:r.p_email||r.email||'',url:r.url||'',contact:[r.p_title,r.p_fname,r.p_lname].filter(Boolean).join(' ').trim(),lat,lon}); } return out; }
 function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
-  const ozToCenters={}; function add(domain,n_id,c_id){ const k=`${domain}:${n_id}`; (ozToCenters[k] ||= []).push(c_id); }
-  for(const r of oncos_centers||[]) add('ONKO',r.n_id,r.c_id); for(const r of viszes_centers||[]) add('VISZ',r.n_id,r.c_id); for(const r of uros_centers||[]) add('URO',r.n_id,r.c_id);
+  const ozToCenters={};
+
+  const assignment = buildCenterAssignments(DB?.CENTERS||[],oncos_centers,viszes_centers,uros_centers);
+  for(const [cid, ozKeys] of assignment.resolvedOZKeysByCenter.entries()){
+    for(const ozKey of ozKeys){
+      (ozToCenters[ozKey] ||= []).push(cid);
+    }
+  }
+
   const centerToPartners={};
   const partnerToCenterIds = new Map();
   for(const r of partners_centers||[]){
@@ -320,14 +391,8 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
   const allAssignedCenterIds=new Set(Object.values(ozToCenters).flat().map(x=>String(x)));
   const allLinkedPartnerIds=new Set(Object.values(ozToPartners).flat().map(x=>String(x)));
 
-  const centerToOZKeys = new Map();
-  for(const [ozKey, cids] of Object.entries(ozToCenters)){
-    for(const cid of cids){
-      const k = String(cid);
-      if(!centerToOZKeys.has(k)) centerToOZKeys.set(k, []);
-      centerToOZKeys.get(k).push(ozKey);
-    }
-  }
+  const centerToOZKeys = assignment.resolvedOZKeysByCenter;
+  const centerToDirectOZKeys = assignment.directOZKeysByCenter;
 
   const partnerToOZKeys = new Map();
   for(const [ozKey, pids] of Object.entries(ozToPartners)){
@@ -338,7 +403,7 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
     }
   }
 
-  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, partnerToOZKeys, partnerToCenterIds};
+  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, centerToDirectOZKeys, partnerToOZKeys, partnerToCenterIds};
 }
 function addLine(a,b,opts){ (freezeLines ? frozenLinesLayer : linesLayer).addLayer(L.polyline([a,b],opts)); }
 function updateVisibility(){
@@ -749,8 +814,10 @@ async function loadAll(){
     ]);
     const CLINICS=normalizeClinics(clinics), clinicByNr=new Map(CLINICS.map(c=>[String(c.clinic_nr),c]));
     const OZ=[...normalizeOZ(oncos,'ONKO',clinicByNr),...normalizeOZ(viszes,'VISZ',clinicByNr),...normalizeOZ(uros,'URO',clinicByNr)];
-    const CENTERS=normalizeCenters(centers), PARTNERS=normalizePartners(partners), links=buildLinks(oncosCenters,viszesCenters,urosCenters,partnersCenters);
-    DB={CLINICS,clinicByNr,OZ,CENTERS,PARTNERS,...links}; DB.ozByKey=new Map(DB.OZ.map(x=>[x.key,x])); DB.centerById=new Map(DB.CENTERS.map(x=>[String(x.id),x])); DB.partnerById=new Map(DB.PARTNERS.map(x=>[String(x.id),x]));
+    const CENTERS=normalizeCenters(centers), PARTNERS=normalizePartners(partners);
+    DB={CLINICS,clinicByNr,OZ,CENTERS,PARTNERS};
+    const links=buildLinks(oncosCenters,viszesCenters,urosCenters,partnersCenters);
+    DB={...DB,...links}; DB.ozByKey=new Map(DB.OZ.map(x=>[x.key,x])); DB.centerById=new Map(DB.CENTERS.map(x=>[String(x.id),x])); DB.partnerById=new Map(DB.PARTNERS.map(x=>[String(x.id),x]));
     UI.status().innerHTML=`✅ Geladen: ${OZ.length} OZ · ${CENTERS.length} Organzentren · ${PARTNERS.length} Partner<br><span class="ok">Alle 10 APIs aktiv.</span>`;
     render();
     renderOverviewDashboard();
