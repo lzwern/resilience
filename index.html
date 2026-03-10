@@ -447,11 +447,44 @@ function renderOverviewDashboard(preferredTab){
   const filteredPartnersGlobal = (DB.PARTNERS||[]).filter(p => partnerMatchesNetwork(p, f) && (f.organ === 'ALL' || (DB.partnerToCenterIds?.get(String(p.id)) || []).some(cid => filteredCenterIdsGlobal.has(String(cid)))));
   const filteredPraxenGlobal = filteredPartnersGlobal.filter(p => isPraxisName(p.name));
 
+  const networkShowWith = document.getElementById('network_filter_centers_with_oz')?.checked ?? true;
+  const networkShowWithout = document.getElementById('network_filter_centers_without_oz')?.checked ?? true;
+  const centersByNetwork = new Map();
+  const unassignedNetworkCenters = [];
+  for(const c of filteredCentersGlobal){
+    const ozKeys = DB.centerToOZKeys?.get(String(c.id)) || [];
+    const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
+    if(!ozKeys.length){
+      unassignedNetworkCenters.push({center:c, ozNames:[]});
+      continue;
+    }
+    const nets = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.network || 'OTHER'))];
+    for(const net of nets){
+      if(!centersByNetwork.has(net)) centersByNetwork.set(net, []);
+      centersByNetwork.get(net).push({center:c, ozNames});
+    }
+  }
+
+  function networkCenterItem(entry){
+    const c = entry.center;
+    const ozNames = entry.ozNames || [];
+    return `<div class="item compact"><div class="t"><span class="tag org">${esc(c.organ || 'Organ')}</span>${esc(c.name || 'Organzentrum')}</div><div class="m">${esc(c.city||'')}</div>${ozNames.length ? `<div class="m">Zugeordnet zu: ${esc(ozNames.slice(0,4).join(' · '))}${ozNames.length>4?' …':''}</div>` : `<div class="m">Ohne OZ-Zuordnung</div>`}</div>`;
+  }
+
+  const perNetworkDetailsHtml = rows.map(r => {
+    const entries = (centersByNetwork.get(r.net) || []).slice().sort((a,b)=>(a.center.city||'').localeCompare(b.center.city||'','de') || (a.center.name||'').localeCompare(b.center.name||'','de'));
+    const visibleEntries = networkShowWith ? entries : [];
+    return `<details style="margin-top:8px;" ${visibleEntries.length && (f.net === r.net || (f.net==='ALL' && rows.length<=2)) ? 'open' : ''}><summary style="cursor:pointer;font-size:12px;font-weight:900;color:${networkColor(r.net)}">${esc(r.net)} · ${visibleEntries.length} Organzentren</summary>${visibleEntries.length ? `<div class="list" style="margin-top:8px;">${visibleEntries.map(networkCenterItem).join('')}</div>` : `<div class="muted">Keine Organzentren mit OZ-Zuordnung für die aktuellen Filter.</div>`}</details>`;
+  }).join('');
+
+  const unassignedDetailsHtml = networkShowWithout && unassignedNetworkCenters.length ? `<details style="margin-top:8px;"><summary style="cursor:pointer;font-size:12px;font-weight:900;color:#64748b">Ohne OZ-Zuordnung · ${unassignedNetworkCenters.length} Organzentren</summary><div class="list" style="margin-top:8px;">${unassignedNetworkCenters.slice().sort((a,b)=>(a.center.city||'').localeCompare(b.center.city||'','de') || (a.center.name||'').localeCompare(b.center.name||'','de')).map(networkCenterItem).join('')}</div></details>` : '';
+
   Panel.network().innerHTML = `
     <div class="st">Netzwerk-Dashboard</div>
     <div class="dashcard">
       <div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>
       <div style="font-size:11px;color:rgba(0,0,0,.62);margin-bottom:8px;">Netzwerkfilter aktiv: <b>${esc(f.net)}</b>${f.organ!=='ALL' ? ' · Organ: <b>'+esc(f.organ)+'</b>' : ''}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px 0;font-size:12px;"><label><input type="checkbox" id="network_filter_centers_with_oz" ${networkShowWith ? 'checked' : ''}> nur mit OZ-Zuordnung</label><label><input type="checkbox" id="network_filter_centers_without_oz" ${networkShowWithout ? 'checked' : ''}> ohne OZ-Zuordnung</label></div>
       <div class="smallgrid">${kpiHtml([
         {n: DB.OZ.filter(o=>matchOZ(o,f)).length, l:'OZ gesamt'},
         {n: filteredCentersGlobal.length, l:'Organzentren'},
@@ -465,6 +498,9 @@ function renderOverviewDashboard(preferredTab){
         </div>
         <div style="font-size:11px;color:rgba(0,0,0,.62);margin-top:2px">${r.oz} OZ · ${r.centers} Organzentren · ${r.praxen} Praxen/MVZ</div>
       `).join('')}
+      <div style="margin-top:10px;font-size:12px;font-weight:900;">Organzentren je Netzwerk</div>
+      ${perNetworkDetailsHtml || '<div class="muted">Keine Netzwerkdaten für die aktuellen Filter.</div>'}
+      ${unassignedDetailsHtml}
     </div>`;
   const organSelectHtml = `<div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>`;
   Panel.dashboard().innerHTML = `
@@ -784,7 +820,7 @@ document.addEventListener('change', (e) => {
 
 
 document.addEventListener('change',e=>{
-  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz')){
+  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz')){
     renderOverviewDashboard(currentMainTab);
   }
 });
