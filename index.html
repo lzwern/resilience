@@ -191,6 +191,7 @@ const Panel={el:()=>document.getElementById('globalPanel'),title:()=>document.ge
 document.addEventListener('click',e=>{
   if(e.target && (e.target.id==='poverview' || e.target.id==='pback')){
     renderOverviewDashboard('dashboard');
+    render();
   }
   if(e.target && e.target.id==='pclose'){
     Panel.el()?.classList.add('hidden');
@@ -264,7 +265,7 @@ function centerMatchesNetwork(center, f){
   if(!f || f.net === 'ALL') return true;
   if(!DB) return true;
   const ozKeys = DB.centerToOZKeys?.get(String(center.id)) || [];
-  if(!ozKeys.length) return true; // unassigned centers remain visible independently
+  if(!ozKeys.length) return false;
   return ozKeys.some(k => {
     const oz = DB.ozByKey.get(k);
     return oz && oz.network === f.net;
@@ -353,7 +354,9 @@ function drawLinks(){
   if(!freezeLines) linesLayer.clearLayers();
   if(map.getZoom() < 9) return;
   const f=getFilters();
-  const visibleOZ=DB.OZ.filter(o=>matchOZ(o,f));
+  const visibleOZ = selectedOZKey
+    ? DB.OZ.filter(o => o.key === selectedOZKey && matchOZ(o,f))
+    : DB.OZ.filter(o=>matchOZ(o,f));
   for(const oz of visibleOZ){
     const ozM=ozMarkerByKey.get(oz.key); if(!ozM) continue; const ozLL=ozM.getLatLng();
     if(f.centers){ for(const cid of (DB.ozToCenters[oz.key]||[])){ const cm=centerMarkerById.get(String(cid)); if(cm) addLine(ozLL,cm.getLatLng(),{color:'#94a3b8',weight:1.8,opacity:0.22,pane:'paneLines'}); } }
@@ -634,10 +637,22 @@ function render(){
   }
 
   if(f.partners){
+    const selectedPartnerIds = selectedOZKey ? new Set((DB.ozToPartners[selectedOZKey] || []).map(String)) : null;
+    const selectedCenterIds = selectedOZKey ? new Set(
+      (DB.ozToCenters[selectedOZKey] || []).filter(cid => {
+        const c = DB.centerById.get(String(cid));
+        return c && centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f);
+      }).map(String)
+    ) : null;
     for(const p of DB.PARTNERS){
       const pid=String(p.id), praxis=isPraxisName(p.name);
       if(f.praxenOnly && !praxis) continue;
       if(!matchSearchOnly({name:p.name,city:p.city},f)) continue;
+      if(selectedPartnerIds && !selectedPartnerIds.has(pid)) continue;
+      if(selectedCenterIds && f.organ !== 'ALL'){
+        const linkedCenters = DB.partnerToCenterIds?.get(pid) || [];
+        if(!linkedCenters.some(cid => selectedCenterIds.has(String(cid)))) continue;
+      }
       const linked=DB.allLinkedPartnerIds.has(pid), color=praxis?COL_PRAX:COL_PARTNER, addr=[p.street,p.zip,p.city].filter(Boolean).join(', ');
       const popup=`<div style="min-width:280px;max-width:520px;"><div style="font-weight:900">${esc(p.name||'')}</div><div style="margin-top:4px;color:#64748b;font-size:12px;">${praxis?'Praxis/MVZ':'Partner'}${!linked?' · ohne OZ-Linie':''}</div>${addr?`<div style="margin-top:6px;">${esc(addr)}</div>`:''}${p.contact?`<div style="margin-top:6px;color:#64748b;font-size:12px;">Kontakt: ${esc(p.contact)}</div>`:''}${p.phone?`<div style="margin-top:6px;"><a href="tel:${esc(p.phone)}">☎ ${esc(p.phone)}</a></div>`:''}${p.email?`<div style="margin-top:4px;"><a href="mailto:${esc(p.email)}">✉ ${esc(p.email)}</a></div>`:''}${p.url?`<div style="margin-top:4px;"><a href="${esc(p.url)}" target="_blank" rel="noreferrer">Website</a></div>`:''}</div>`;
       const m=L.circleMarker([p.lat,p.lon],{radius:4,color,weight:2,fillOpacity:linked?.75:.35,fillColor:color,pane:'panePartner'}).bindPopup(popup);
