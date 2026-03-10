@@ -266,6 +266,70 @@ function getFilters(){ return { onko:UI.onko()?.checked??true, visz:UI.visz()?.c
 function matchOZ(o,f){ if(o.domain==='ONKO'&&!f.onko) return false; if(o.domain==='VISZ'&&!f.visz) return false; if(o.domain==='URO'&&!f.uro) return false; if(f.net!=='ALL'&&o.network!==f.net) return false; if(f.q){ const hay=((o.name||'')+' '+(o.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
 function matchSearchOnly(x,f){ if(f.q){ const hay=((x.name||'')+' '+(x.city||'')).toLowerCase(); if(!hay.includes(f.q)) return false; } return true; }
 
+function centerGroupId(regNr){
+  const v=(regNr||'').toString().trim();
+  if(!v) return '';
+  const m=v.match(/^(.*-\d+)-\d+$/);
+  return m ? m[1] : v;
+}
+
+function buildCenterAssignments(centers,oncos_centers,viszes_centers,uros_centers){
+  const domainMap={OZ:'ONKO',Viszeral:'VISZ',Uro:'URO'};
+  const directByCenter=new Map();
+  const addDirect=(centerId,ref)=>{
+    const key=String(centerId);
+    if(!directByCenter.has(key)) directByCenter.set(key, new Set());
+    directByCenter.get(key).add(`${ref.type}:${ref.id}`);
+  };
+
+  for(const r of oncos_centers||[]) addDirect(r.c_id,{type:'OZ',id:r.n_id});
+  for(const r of viszes_centers||[]) addDirect(r.c_id,{type:'Viszeral',id:r.n_id});
+  for(const r of uros_centers||[]) addDirect(r.c_id,{type:'Uro',id:r.n_id});
+
+  const groupedCenterIds=new Map();
+  for(const c of centers||[]){
+    const gKey=`${normOrgan(c.organ)}|${centerGroupId(c.reg_nr)}`;
+    if(!groupedCenterIds.has(gKey)) groupedCenterIds.set(gKey, []);
+    groupedCenterIds.get(gKey).push(String(c.id));
+  }
+
+  const resolvedByCenter=new Map();
+  for(const c of centers||[]){
+    resolvedByCenter.set(String(c.id), new Set(directByCenter.get(String(c.id)) || []));
+  }
+
+  for(const ids of groupedCenterIds.values()){
+    const shared=new Set();
+    for(const id of ids){
+      for(const ref of (resolvedByCenter.get(id) || [])) shared.add(ref);
+    }
+    if(!shared.size) continue;
+    for(const id of ids){
+      const current=resolvedByCenter.get(id) || new Set();
+      for(const ref of shared) current.add(ref);
+      resolvedByCenter.set(id, current);
+    }
+  }
+
+  const toOZKey=(ref)=>{
+    const [t,id]=String(ref).split(':');
+    const domain=domainMap[t];
+    if(!domain || !id) return null;
+    return `${domain}:${id}`;
+  };
+
+  const directOZKeysByCenter=new Map();
+  const resolvedOZKeysByCenter=new Map();
+  for(const c of centers||[]){
+    const cid=String(c.id);
+    const direct=[...(directByCenter.get(cid) || [])].map(toOZKey).filter(Boolean);
+    const resolved=[...(resolvedByCenter.get(cid) || [])].map(toOZKey).filter(Boolean);
+    directOZKeysByCenter.set(cid,direct);
+    resolvedOZKeysByCenter.set(cid,resolved);
+  }
+  return {directOZKeysByCenter,resolvedOZKeysByCenter};
+}
+
 
 function normOrgan(x){
   return (x||'').toString().trim().toLowerCase();
@@ -303,11 +367,14 @@ function organOptionsHtml(){
 
 function normalizeClinics(rows){ const out=[]; for(const r of rows||[]){ const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? r.id ?? null; if(clinicNr==null) continue; out.push({clinic_nr:String(clinicNr),name:r.inst1||r.name||'',street:r.street||'',zip:r.zip||'',loc:r.loc||r.ort||''}); } return out; }
 function normalizeOZ(rows,domain,clinicByNr){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; const clinicNr=r.clinic_nr ?? r.klnr ?? r.clinicNr ?? r.klinik_nr ?? null; const clinic=(clinicNr!=null&&clinicByNr)?clinicByNr.get(String(clinicNr)):null; out.push({id:r.id,key:`${domain}:${r.id}`,domain,name:r.inst1||r.name||`${domain} ${r.id}`,city:r.loc||r.ort||(clinic?.loc||''),lat,lon,network:netOfAny(r.inst1,r.inst2,r.url),street:r.street||clinic?.street||'',zip:r.zip||clinic?.zip||'',inst2:r.inst2||'',url:r.url||''}); } return out; }
-function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
+function normalizeCenters(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Center ${r.id}`,organ:r.organ||'',reg_nr:r.reg_nr||'',city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',lat,lon}); } return out; }
 function normalizePartners(rows){ const out=[]; for(const r of rows||[]){ const lat=num(r.latitude), lon=num(r.longitude); if(lat===null||lon===null) continue; out.push({id:r.id,name:r.inst1||r.name||`Partner ${r.id}`,city:r.loc||r.ort||'',street:r.street||'',zip:r.zip||'',phone:r.phone||'',email:r.p_email||r.email||'',url:r.url||'',contact:[r.p_title,r.p_fname,r.p_lname].filter(Boolean).join(' ').trim(),lat,lon}); } return out; }
 function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
   const ozToCenters={}; function add(domain,n_id,c_id){ const k=`${domain}:${n_id}`; (ozToCenters[k] ||= []).push(c_id); }
   for(const r of oncos_centers||[]) add('ONKO',r.n_id,r.c_id); for(const r of viszes_centers||[]) add('VISZ',r.n_id,r.c_id); for(const r of uros_centers||[]) add('URO',r.n_id,r.c_id);
+
+  const assignment = buildCenterAssignments(DB?.CENTERS||[],oncos_centers,viszes_centers,uros_centers);
+
   const centerToPartners={};
   const partnerToCenterIds = new Map();
   for(const r of partners_centers||[]){
@@ -320,14 +387,9 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
   const allAssignedCenterIds=new Set(Object.values(ozToCenters).flat().map(x=>String(x)));
   const allLinkedPartnerIds=new Set(Object.values(ozToPartners).flat().map(x=>String(x)));
 
-  const centerToOZKeys = new Map();
-  for(const [ozKey, cids] of Object.entries(ozToCenters)){
-    for(const cid of cids){
-      const k = String(cid);
-      if(!centerToOZKeys.has(k)) centerToOZKeys.set(k, []);
-      centerToOZKeys.get(k).push(ozKey);
-    }
-  }
+  const centerToOZKeys = assignment.directOZKeysByCenter;
+  const centerToDirectOZKeys = assignment.directOZKeysByCenter;
+  const centerToResolvedOZKeys = assignment.resolvedOZKeysByCenter;
 
   const partnerToOZKeys = new Map();
   for(const [ozKey, pids] of Object.entries(ozToPartners)){
@@ -338,7 +400,7 @@ function buildLinks(oncos_centers,viszes_centers,uros_centers,partners_centers){
     }
   }
 
-  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, partnerToOZKeys, partnerToCenterIds};
+  return {ozToCenters, ozToPartners, allAssignedCenterIds, allLinkedPartnerIds, centerToOZKeys, centerToDirectOZKeys, centerToResolvedOZKeys, partnerToOZKeys, partnerToCenterIds};
 }
 function addLine(a,b,opts){ (freezeLines ? frozenLinesLayer : linesLayer).addLayer(L.polyline([a,b],opts)); }
 function updateVisibility(){
@@ -442,25 +504,85 @@ function renderOverviewDashboard(preferredTab){
   }).filter(r => f.net === 'ALL' || r.net === f.net).sort((a,b)=>b.partners-a.partners);
   const maxPartners = Math.max(1, ...rows.map(r=>r.partners), 1);
 
-  const filteredCentersGlobal = (DB.CENTERS||[]).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetwork(c, f));
+  function effectiveNetworkOzKeysForCenter(center){
+    const cid = String(center.id);
+    const direct = DB.centerToOZKeys?.get(cid) || [];
+    if(direct.length) return direct;
+    const fallback = (DB.centerToResolvedOZKeys?.get(cid) || []).filter(k => String(k).startsWith('ONKO:'));
+    return fallback;
+  }
+
+  function centerMatchesNetworkInNetworkTab(center){
+    if(!f || f.net === 'ALL') return true;
+    const ozKeys = effectiveNetworkOzKeysForCenter(center);
+    const hasDirectNetwork = ozKeys.some(k => {
+      const oz = DB.ozByKey.get(k);
+      return oz && oz.network === f.net;
+    });
+    if(hasDirectNetwork) return true;
+
+    return netOfAny(center?.name || '', '', '') === f.net;
+  }
+
+  const filteredCentersGlobal = (DB.CENTERS||[]).filter(c => centerMatchesOrgan(c, f) && centerMatchesNetworkInNetworkTab(c));
   const filteredCenterIdsGlobal = new Set(filteredCentersGlobal.map(c => String(c.id)));
   const filteredPartnersGlobal = (DB.PARTNERS||[]).filter(p => partnerMatchesNetwork(p, f) && (f.organ === 'ALL' || (DB.partnerToCenterIds?.get(String(p.id)) || []).some(cid => filteredCenterIdsGlobal.has(String(cid)))));
   const filteredPraxenGlobal = filteredPartnersGlobal.filter(p => isPraxisName(p.name));
 
   const networkShowWith = document.getElementById('network_filter_centers_with_oz')?.checked ?? true;
   const networkShowWithout = document.getElementById('network_filter_centers_without_oz')?.checked ?? true;
+  const networkListNetFilter = document.getElementById('network_list_net_filter')?.value || 'ALL';
+  const networkHeliosDirectOnly = document.getElementById('network_filter_helios_direct_only')?.checked ?? false;
+
+  function listEntryKey(center){
+    return String(center?.id || '');
+  }
+
+  function listNetworksForCenter(center, ozKeys){
+    const ozNetworks = [...new Set((ozKeys || []).map(k => DB.ozByKey.get(k)?.network).filter(Boolean))];
+    const nameNetwork = netOfAny(center?.name || '', '', '');
+    const base = ozNetworks.length ? ozNetworks : [nameNetwork];
+
+    if(networkListNetFilter !== 'ALL'){
+      if(base.includes(networkListNetFilter)) return [networkListNetFilter];
+      return nameNetwork === networkListNetFilter ? [networkListNetFilter] : [];
+    }
+
+    if(base.length > 1 && base.includes('OTHER')){
+      return base.filter(n => n !== 'OTHER');
+    }
+    return base;
+  }
+
   const centersByNetwork = new Map();
+  const seenByNetwork = new Map();
   const unassignedNetworkCenters = [];
+  const seenUnassigned = new Set();
   for(const c of filteredCentersGlobal){
-    const ozKeys = DB.centerToOZKeys?.get(String(c.id)) || [];
+    const ozKeys = effectiveNetworkOzKeysForCenter(c);
+    if(networkHeliosDirectOnly && networkListNetFilter === 'HELIOS'){
+      const hasHeliosOZ = ozKeys.some(k => DB.ozByKey.get(k)?.network === 'HELIOS');
+      if(!hasHeliosOZ) continue;
+    }
     const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
+    const dedupeKey = listEntryKey(c);
+
     if(!ozKeys.length){
+      const nameNetwork = netOfAny(c?.name || '', '', '');
+      if(networkListNetFilter !== 'ALL' && nameNetwork !== networkListNetFilter) continue;
+      if(seenUnassigned.has(dedupeKey)) continue;
+      seenUnassigned.add(dedupeKey);
       unassignedNetworkCenters.push({center:c, ozNames:[]});
       continue;
     }
-    const nets = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.network || 'OTHER'))];
+
+    const nets = listNetworksForCenter(c, ozKeys);
     for(const net of nets){
       if(!centersByNetwork.has(net)) centersByNetwork.set(net, []);
+      if(!seenByNetwork.has(net)) seenByNetwork.set(net, new Set());
+      const seen = seenByNetwork.get(net);
+      if(seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
       centersByNetwork.get(net).push({center:c, ozNames});
     }
   }
@@ -485,6 +607,19 @@ function renderOverviewDashboard(preferredTab){
       <div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>
       <div style="font-size:11px;color:rgba(0,0,0,.62);margin-bottom:8px;">Netzwerkfilter aktiv: <b>${esc(f.net)}</b>${f.organ!=='ALL' ? ' · Organ: <b>'+esc(f.organ)+'</b>' : ''}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px 0;font-size:12px;"><label><input type="checkbox" id="network_filter_centers_with_oz" ${networkShowWith ? 'checked' : ''}> nur mit OZ-Zuordnung</label><label><input type="checkbox" id="network_filter_centers_without_oz" ${networkShowWithout ? 'checked' : ''}> ohne OZ-Zuordnung</label></div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Listenfilter nach Netzwerkname</div>
+        <select id="network_list_net_filter" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">
+          <option value="ALL" ${networkListNetFilter==='ALL'?'selected':''}>Alle Netzwerke</option>
+          <option value="HELIOS" ${networkListNetFilter==='HELIOS'?'selected':''}>Helios</option>
+          <option value="SANA" ${networkListNetFilter==='SANA'?'selected':''}>Sana</option>
+          <option value="ASKLEPIOS" ${networkListNetFilter==='ASKLEPIOS'?'selected':''}>Asklepios</option>
+          <option value="UNI" ${networkListNetFilter==='UNI'?'selected':''}>Uniklinik</option>
+          <option value="OTHER" ${networkListNetFilter==='OTHER'?'selected':''}>Sonstige</option>
+        </select>
+        <label style="margin-top:6px;font-size:12px;"><input type="checkbox" id="network_filter_helios_direct_only" ${networkHeliosDirectOnly ? 'checked' : ''}> bei HELIOS nur mit direkter HELIOS-OZ-Zuordnung</label>
+        <div style="font-size:11px;color:rgba(0,0,0,.55);margin-top:4px;">Für nicht-direkte Zuordnungen greift ein Namensfilter (z. B. "Helios" im Zentrumsnamen).</div>
+      </div>
       <div class="smallgrid">${kpiHtml([
         {n: DB.OZ.filter(o=>matchOZ(o,f)).length, l:'OZ gesamt'},
         {n: filteredCentersGlobal.length, l:'Organzentren'},
@@ -749,8 +884,10 @@ async function loadAll(){
     ]);
     const CLINICS=normalizeClinics(clinics), clinicByNr=new Map(CLINICS.map(c=>[String(c.clinic_nr),c]));
     const OZ=[...normalizeOZ(oncos,'ONKO',clinicByNr),...normalizeOZ(viszes,'VISZ',clinicByNr),...normalizeOZ(uros,'URO',clinicByNr)];
-    const CENTERS=normalizeCenters(centers), PARTNERS=normalizePartners(partners), links=buildLinks(oncosCenters,viszesCenters,urosCenters,partnersCenters);
-    DB={CLINICS,clinicByNr,OZ,CENTERS,PARTNERS,...links}; DB.ozByKey=new Map(DB.OZ.map(x=>[x.key,x])); DB.centerById=new Map(DB.CENTERS.map(x=>[String(x.id),x])); DB.partnerById=new Map(DB.PARTNERS.map(x=>[String(x.id),x]));
+    const CENTERS=normalizeCenters(centers), PARTNERS=normalizePartners(partners);
+    DB={CLINICS,clinicByNr,OZ,CENTERS,PARTNERS};
+    const links=buildLinks(oncosCenters,viszesCenters,urosCenters,partnersCenters);
+    DB={...DB,...links}; DB.ozByKey=new Map(DB.OZ.map(x=>[x.key,x])); DB.centerById=new Map(DB.CENTERS.map(x=>[String(x.id),x])); DB.partnerById=new Map(DB.PARTNERS.map(x=>[String(x.id),x]));
     UI.status().innerHTML=`✅ Geladen: ${OZ.length} OZ · ${CENTERS.length} Organzentren · ${PARTNERS.length} Partner<br><span class="ok">Alle 10 APIs aktiv.</span>`;
     render();
     renderOverviewDashboard();
@@ -820,7 +957,7 @@ document.addEventListener('change', (e) => {
 
 
 document.addEventListener('change',e=>{
-  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz')){
+  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz' || e.target.id==='network_list_net_filter' || e.target.id==='network_filter_helios_direct_only')){
     renderOverviewDashboard(currentMainTab);
   }
 });
