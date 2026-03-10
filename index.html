@@ -529,10 +529,21 @@ function renderOverviewDashboard(preferredTab){
 
   const networkShowWith = document.getElementById('network_filter_centers_with_oz')?.checked ?? true;
   const networkShowWithout = document.getElementById('network_filter_centers_without_oz')?.checked ?? true;
+  const networkListNetFilter = document.getElementById('network_list_net_filter')?.value || 'ALL';
+
+  function centerMatchesListNetwork(center, ozKeys){
+    if(networkListNetFilter === 'ALL') return true;
+    const ozNetworks = [...new Set((ozKeys || []).map(k => DB.ozByKey.get(k)?.network).filter(Boolean))];
+    if(ozNetworks.length && ozNetworks.includes(networkListNetFilter)) return true;
+    const nameNetwork = netOfAny(center?.name || '', '', '');
+    return nameNetwork === networkListNetFilter;
+  }
+
   const centersByNetwork = new Map();
   const unassignedNetworkCenters = [];
   for(const c of filteredCentersGlobal){
     const ozKeys = effectiveNetworkOzKeysForCenter(c);
+    if(!centerMatchesListNetwork(c, ozKeys)) continue;
     const ozNames = [...new Set(ozKeys.map(k => DB.ozByKey.get(k)?.name).filter(Boolean))];
     if(!ozKeys.length){
       unassignedNetworkCenters.push({center:c, ozNames:[]});
@@ -565,6 +576,18 @@ function renderOverviewDashboard(preferredTab){
       <div style="margin-bottom:8px;"><div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Organfilter</div><select class="global-organ-select" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">${organOptionsHtml()}</select></div>
       <div style="font-size:11px;color:rgba(0,0,0,.62);margin-bottom:8px;">Netzwerkfilter aktiv: <b>${esc(f.net)}</b>${f.organ!=='ALL' ? ' · Organ: <b>'+esc(f.organ)+'</b>' : ''}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px 0;font-size:12px;"><label><input type="checkbox" id="network_filter_centers_with_oz" ${networkShowWith ? 'checked' : ''}> nur mit OZ-Zuordnung</label><label><input type="checkbox" id="network_filter_centers_without_oz" ${networkShowWithout ? 'checked' : ''}> ohne OZ-Zuordnung</label></div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;color:rgba(0,0,0,.65);margin-bottom:4px;">Zusatzfilter für Listen (Other / Ohne OZ)</div>
+        <select id="network_list_net_filter" style="width:100%;padding:7px 8px;border-radius:8px;border:1px solid rgba(0,0,0,.18);font-size:12px">
+          <option value="ALL" ${networkListNetFilter==='ALL'?'selected':''}>Alle Netzwerke</option>
+          <option value="HELIOS" ${networkListNetFilter==='HELIOS'?'selected':''}>Helios</option>
+          <option value="SANA" ${networkListNetFilter==='SANA'?'selected':''}>Sana</option>
+          <option value="ASKLEPIOS" ${networkListNetFilter==='ASKLEPIOS'?'selected':''}>Asklepios</option>
+          <option value="UNI" ${networkListNetFilter==='UNI'?'selected':''}>Uniklinik</option>
+          <option value="OTHER" ${networkListNetFilter==='OTHER'?'selected':''}>Sonstige</option>
+        </select>
+        <div style="font-size:11px;color:rgba(0,0,0,.55);margin-top:4px;">Für Einträge ohne OZ wird das Netzwerk über den Zentrumsnamen (z. B. „Helios“) bestimmt.</div>
+      </div>
       <div class="smallgrid">${kpiHtml([
         {n: DB.OZ.filter(o=>matchOZ(o,f)).length, l:'OZ gesamt'},
         {n: filteredCentersGlobal.length, l:'Organzentren'},
@@ -902,7 +925,7 @@ document.addEventListener('change', (e) => {
 
 
 document.addEventListener('change',e=>{
-  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz')){
+  if(e.target && (e.target.id==='filter_centers_with_oz' || e.target.id==='filter_centers_without_oz' || e.target.id==='network_filter_centers_with_oz' || e.target.id==='network_filter_centers_without_oz' || e.target.id==='network_list_net_filter')){
     renderOverviewDashboard(currentMainTab);
   }
 });
