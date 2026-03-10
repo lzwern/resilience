@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1600">
+<style>text{font-family:Inter,Segoe UI,Arial,sans-serif;}.title{font-size:40px;font-weight:700;}.subtitle{font-size:18px;fill:#475569;}.kpiL{font-size:16px;fill:#64748b;}.kpiV{font-size:34px;font-weight:700;fill:#0f172a;}.cluster{font-size:28px;font-weight:700;}.small{font-size:12px;fill:#334155;}</style>
+<rect x="0" y="0" width="2400" height="1600" fill="#f8fafc"/>
+<text class="title" x="60" y="64">Helios-Landkarte: ONKO / VISZ / URO</text>
+<text class="subtitle" x="60" y="94">Struktur nach Onkologischen, Viszeralonkologischen und Uroonkologischen Zentren</text>
+<text class="subtitle" x="60" y="120">Kreisgröße = Partner gesamt · Randstärke = Anteil externe Partner (nicht Helios)</text>
+<rect x="60" y="150" width="520" height="122" rx="14" fill="#fff" stroke="#dbe3ee"/>
+<text class="kpiL" x="80" y="188">Helios Onkologische Zentren</text>
+<text class="kpiV" x="80" y="238">7</text>
+<rect x="620" y="150" width="520" height="122" rx="14" fill="#fff" stroke="#dbe3ee"/>
+<text class="kpiL" x="640" y="188">Helios VISZ-Zentren</text>
+<text class="kpiV" x="640" y="238">12</text>
+<rect x="1180" y="150" width="520" height="122" rx="14" fill="#fff" stroke="#dbe3ee"/>
+<text class="kpiL" x="1200" y="188">Helios URO-Zentren</text>
+<text class="kpiV" x="1200" y="238">6</text>
+<rect x="1740" y="150" width="520" height="122" rx="14" fill="#fff" stroke="#dbe3ee"/>
+<text class="kpiL" x="1760" y="188">Helios-Partner ohne Helios-Zentrum</text>
+<text class="kpiV" x="1760" y="238">50</text>
+<circle cx="600" cy="820" r="500" fill="#8e44ad" opacity="0.06"/>
+<text class="cluster" x="600" y="340" text-anchor="middle" fill="#8e44ad">Onkologische Zentren</text>
+<circle cx="442.5" cy="964.3" r="25.9" fill="#8e44ad" opacity="0.53" stroke="#1f2937" stroke-width="4.88"><title>Helios Onkologisches Zentrum Erfurt (Erfurt)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 13\nPartner gesamt: 105\nPartner extern (nicht Helios): 38\nPartner Helios-intern: 67</title></circle>
+<text class="small" x="442.5" y="1005.2" text-anchor="middle">Helios Onkologisches Zentrum Erfurt</text>
+<circle cx="623.9" cy="547.9" r="24.1" fill="#8e44ad" opacity="0.52" stroke="#1f2937" stroke-width="4.77"><title>HELIOS Onkologisches Zentrum Krefeld (Krefeld)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 10\nPartner gesamt: 83\nPartner extern (nicht Helios): 29\nPartner Helios-intern: 54</title></circle>
+<text class="small" x="623.9" y="587.0" text-anchor="middle">HELIOS Onkologisches Zentrum Krefeld</text>
+<circle cx="794.0" cy="1073.0" r="23.8" fill="#8e44ad" opacity="0.51" stroke="#1f2937" stroke-width="4.49"><title>Helios Centrum für Tumorerkrankungen Wiesbaden (HCTW) (Wiesbaden)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 14\nPartner gesamt: 79\nPartner extern (nicht Helios): 25\nPartner Helios-intern: 54</title></circle>
+<text class="small" x="794.0" y="1111.8" text-anchor="middle">Helios Centrum für Tumorerkrankungen Wiesbaden (HCTW)</text>
+<circle cx="248.2" cy="757.8" r="23.2" fill="#8e44ad" opacity="0.49" stroke="#1f2937" stroke-width="4.13"><title>Onkologisches Zentrum Helios Kliniken Schwerin (Schwerin)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 16\nPartner gesamt: 73\nPartner extern (nicht Helios): 20\nPartner Helios-intern: 53</title></circle>
+<text class="small" x="248.2" y="796.0" text-anchor="middle">Onkologisches Zentrum Helios Kliniken Schwerin</text>
+<circle cx="930.0" cy="610.1" r="22.8" fill="#8e44ad" opacity="0.53" stroke="#1f2937" stroke-width="4.92"><title>Onkologisches Zentrum Bad Saarow (Bad Saarow)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 7\nPartner gesamt: 68\nPartner extern (nicht Helios): 25\nPartner Helios-intern: 43</title></circle>
+<text class="small" x="930.0" y="647.8" text-anchor="middle">Onkologisches Zentrum Bad Saarow</text>
+<circle cx="490.5" cy="1227.3" r="22.7" fill="#8e44ad" opacity="0.67" stroke="#1f2937" stroke-width="7.26"><title>Cancer Center Dachau (Dachau)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 7\nPartner gesamt: 67\nPartner extern (nicht Helios): 43\nPartner Helios-intern: 24</title></circle>
+<text class="small" x="490.5" y="1265.0" text-anchor="middle">Cancer Center Dachau</text>
+<circle cx="392.6" cy="420.6" r="21.8" fill="#8e44ad" opacity="0.53" stroke="#1f2937" stroke-width="4.88"><title>Onkologisches Zentrum am Helios Universitätsklinikum Wupp... (Wuppertal)\nKategorie: Onkologische Zentren\nAngebundene Organzentren: 11\nPartner gesamt: 58\nPartner extern (nicht Helios): 21\nPartner Helios-intern: 37</title></circle>
+<text class="small" x="392.6" y="457.5" text-anchor="middle">Onkologisches Zentrum am Helios Universitätsklinikum Wupp...</text>
+<circle cx="1200" cy="820" r="500" fill="#16a085" opacity="0.06"/>
+<text class="cluster" x="1200" y="340" text-anchor="middle" fill="#16a085">Viszeralonkologische Zentren</text>
+<circle cx="1067.5" cy="941.4" r="18.2" fill="#16a085" opacity="0.64" stroke="#1f2937" stroke-width="6.66"><title>Viszeralonkologisches Zentrum Dachau (Dachau)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 3\nPartner gesamt: 28\nPartner extern (nicht Helios): 16\nPartner Helios-intern: 12</title></circle>
+<text class="small" x="1067.5" y="974.6" text-anchor="middle">Viszeralonkologisches Zentrum Dachau</text>
+<circle cx="1219.7" cy="595.7" r="17.9" fill="#16a085" opacity="0.56" stroke="#1f2937" stroke-width="5.40"><title>Viszeralonkologisches Zentrum Helios Kliniken Schwerin (Schwerin)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 3\nPartner gesamt: 26\nPartner extern (nicht Helios): 11\nPartner Helios-intern: 15</title></circle>
+<text class="small" x="1219.7" y="628.6" text-anchor="middle">Viszeralonkologisches Zentrum Helios Kliniken Schwerin</text>
+<circle cx="1358.2" cy="1026.3" r="17.8" fill="#16a085" opacity="0.59" stroke="#1f2937" stroke-width="5.88"><title>Helios Viszeralonkologische Zentrum Erfurt (Erfurt)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 25\nPartner extern (nicht Helios): 12\nPartner Helios-intern: 13</title></circle>
+<text class="small" x="1358.2" y="1059.1" text-anchor="middle">Helios Viszeralonkologische Zentrum Erfurt</text>
+<circle cx="915.0" cy="769.6" r="17.3" fill="#16a085" opacity="0.58" stroke="#1f2937" stroke-width="5.66"><title>Viszeralonkologisches Zentrum Berlin-Buch (Berlin)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 22\nPartner extern (nicht Helios): 10\nPartner Helios-intern: 12</title></circle>
+<text class="small" x="915.0" y="801.9" text-anchor="middle">Viszeralonkologisches Zentrum Berlin-Buch</text>
+<circle cx="1466.0" cy="650.8" r="17.1" fill="#16a085" opacity="0.47" stroke="#1f2937" stroke-width="3.82"><title>Viszeralonkologisches Zentrum am Helios Universitätsklini... (Wuppertal)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 4\nPartner gesamt: 21\nPartner extern (nicht Helios): 5\nPartner Helios-intern: 16</title></circle>
+<text class="small" x="1466.0" y="682.9" text-anchor="middle">Viszeralonkologisches Zentrum am Helios Universitätsklini...</text>
+<circle cx="1112.1" cy="1147.1" r="17.1" fill="#16a085" opacity="0.59" stroke="#1f2937" stroke-width="5.85"><title>Viszeralonkologisches Zentrum HELIOS Klinikum Pforzheim (Pforzheim)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 21\nPartner extern (nicht Helios): 10\nPartner Helios-intern: 11</title></circle>
+<text class="small" x="1112.1" y="1179.2" text-anchor="middle">Viszeralonkologisches Zentrum HELIOS Klinikum Pforzheim</text>
+<circle cx="1034.0" cy="500.3" r="16.9" fill="#16a085" opacity="0.47" stroke="#1f2937" stroke-width="3.92"><title>Viszeralonkologisches Zentrum Helios Dr. Horst Schmidt Kl... (Wiesbaden)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 20\nPartner extern (nicht Helios): 5\nPartner Helios-intern: 15</title></circle>
+<text class="small" x="1034.0" y="532.2" text-anchor="middle">Viszeralonkologisches Zentrum Helios Dr. Horst Schmidt Kl...</text>
+<circle cx="1557.2" cy="950.4" r="16.8" fill="#16a085" opacity="0.64" stroke="#1f2937" stroke-width="6.72"><title>Viszeralonkologisches Zentrum Klinikum Hildesheim (Hildesheim)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 19\nPartner extern (nicht Helios): 11\nPartner Helios-intern: 8</title></circle>
+<text class="small" x="1557.2" y="982.2" text-anchor="middle">Viszeralonkologisches Zentrum Klinikum Hildesheim</text>
+<circle cx="831.1" cy="972.3" r="16.8" fill="#16a085" opacity="0.53" stroke="#1f2937" stroke-width="4.93"><title>Viszeralonkologisches Zentrum HELIOS Klinikum Emil von Be... (Berlin)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 19\nPartner extern (nicht Helios): 7\nPartner Helios-intern: 12</title></circle>
+<text class="small" x="831.1" y="1004.0" text-anchor="middle">Viszeralonkologisches Zentrum HELIOS Klinikum Emil von Be...</text>
+<circle cx="1376.7" cy="442.4" r="16.6" fill="#16a085" opacity="0.54" stroke="#1f2937" stroke-width="5.11"><title>Viszeralonkologisches Zentrum Südthüringen (Meiningen)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 18\nPartner extern (nicht Helios): 7\nPartner Helios-intern: 11</title></circle>
+<text class="small" x="1376.7" y="474.0" text-anchor="middle">Viszeralonkologisches Zentrum Südthüringen</text>
+<circle cx="1329.8" cy="1233.9" r="16.6" fill="#16a085" opacity="0.54" stroke="#1f2937" stroke-width="5.11"><title>Leipziger Viszeralonkologisches Zentrum am HELIOS Park-Kl... (Leipzig)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 18\nPartner extern (nicht Helios): 7\nPartner Helios-intern: 11</title></circle>
+<circle cx="810.7" cy="594.4" r="16.6" fill="#16a085" opacity="0.54" stroke="#1f2937" stroke-width="5.11"><title>Viszeralonkologischen Zentrum Helios Hanseklinikum Stralsund (Stralsund)\nKategorie: Viszeralonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 18\nPartner extern (nicht Helios): 7\nPartner Helios-intern: 11</title></circle>
+<circle cx="1800" cy="820" r="500" fill="#e67e22" opacity="0.06"/>
+<text class="cluster" x="1800" y="340" text-anchor="middle" fill="#e67e22">Uroonkologische Zentren</text>
+<circle cx="1634.0" cy="972.1" r="18.3" fill="#e67e22" opacity="0.61" stroke="#1f2937" stroke-width="6.20"><title>Helios Uroonkologische Zentrum Erfurt (Erfurt)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 3\nPartner gesamt: 29\nPartner extern (nicht Helios): 15\nPartner Helios-intern: 14</title></circle>
+<text class="small" x="1634.0" y="1005.4" text-anchor="middle">Helios Uroonkologische Zentrum Erfurt</text>
+<circle cx="1825.3" cy="531.7" r="17.9" fill="#e67e22" opacity="0.50" stroke="#1f2937" stroke-width="4.42"><title>Uroonkologisches Zentrum Helios Kliniken Schwerin (Schwerin)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 4\nPartner gesamt: 26\nPartner extern (nicht Helios): 8\nPartner Helios-intern: 18</title></circle>
+<text class="small" x="1825.3" y="564.6" text-anchor="middle">Uroonkologisches Zentrum Helios Kliniken Schwerin</text>
+<circle cx="2006.1" cy="1088.8" r="17.1" fill="#e67e22" opacity="0.49" stroke="#1f2937" stroke-width="4.23"><title>Uroonkologisches Zentrum Wiesbaden (Wiesbaden)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 21\nPartner extern (nicht Helios): 6\nPartner Helios-intern: 15</title></circle>
+<text class="small" x="2006.1" y="1120.9" text-anchor="middle">Uroonkologisches Zentrum Wiesbaden</text>
+<circle cx="1425.5" cy="753.8" r="16.9" fill="#e67e22" opacity="0.52" stroke="#1f2937" stroke-width="4.77"><title>Uroonkologisches Zentrum am Helios Universitätsklinikum W... (Wuppertal)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 20\nPartner extern (nicht Helios): 7\nPartner Helios-intern: 13</title></circle>
+<text class="small" x="1425.5" y="785.7" text-anchor="middle">Uroonkologisches Zentrum am Helios Universitätsklinikum W...</text>
+<circle cx="2151.8" cy="596.2" r="16.8" fill="#e67e22" opacity="0.51" stroke="#1f2937" stroke-width="4.48"><title>HELIOS Uroonkologisches Zentrum Krefeld (Krefeld)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 2\nPartner gesamt: 19\nPartner extern (nicht Helios): 6\nPartner Helios-intern: 13</title></circle>
+<text class="small" x="2151.8" y="628.0" text-anchor="middle">HELIOS Uroonkologisches Zentrum Krefeld</text>
+<circle cx="1683.2" cy="1254.6" r="16.6" fill="#e67e22" opacity="0.60" stroke="#1f2937" stroke-width="6.05"><title>Uroonkologisches Zentrum am Helios Klinikum Aue (Aue)\nKategorie: Uroonkologische Zentren\nAngebundene Organzentren: 3\nPartner gesamt: 18\nPartner extern (nicht Helios): 9\nPartner Helios-intern: 9</title></circle>
+<text class="small" x="1683.2" y="1286.1" text-anchor="middle">Uroonkologisches Zentrum am Helios Klinikum Aue</text>
+<rect x="60" y="1300" width="2280" height="250" rx="14" fill="#fff" stroke="#dbe3ee"/>
+<text x="80" y="1332" style="font-size:24px;font-weight:700;fill:#0f172a;">Top 18 Helios-Zentren nach Partnerzahl (ONKO/VISZ/URO)</text>
+<text class="small" x="80" y="1370">01. Helios Onkologisches Zentrum Erfurt | Kategorie: Onkologische Zentren | Partner gesamt: 105 | extern: 38 | Helios-intern: 67</text>
+<text class="small" x="80" y="1398">02. HELIOS Onkologisches Zentrum Krefeld | Kategorie: Onkologische Zentren | Partner gesamt: 83 | extern: 29 | Helios-intern: 54</text>
+<text class="small" x="80" y="1426">03. Helios Centrum für Tumorerkrankungen Wiesbaden (HCTW) | Kategorie: Onkologische Zentren | Partner gesamt: 79 | extern: 25 | Helios-intern: 54</text>
+<text class="small" x="80" y="1454">04. Onkologisches Zentrum Helios Kliniken Schwerin | Kategorie: Onkologische Zentren | Partner gesamt: 73 | extern: 20 | Helios-intern: 53</text>
+<text class="small" x="80" y="1482">05. Onkologisches Zentrum Bad Saarow | Kategorie: Onkologische Zentren | Partner gesamt: 68 | extern: 25 | Helios-intern: 43</text>
+<text class="small" x="80" y="1510">06. Cancer Center Dachau | Kategorie: Onkologische Zentren | Partner gesamt: 67 | extern: 43 | Helios-intern: 24</text>
+<text class="small" x="840" y="1370">07. Onkologisches Zentrum am Helios Universitätsklinikum Wupp... | Kategorie: Onkologische Zentren | Partner gesamt: 58 | extern: 21 | Helios-intern: 37</text>
+<text class="small" x="840" y="1398">08. Helios Uroonkologische Zentrum Erfurt | Kategorie: Uroonkologische Zentren | Partner gesamt: 29 | extern: 15 | Helios-intern: 14</text>
+<text class="small" x="840" y="1426">09. Viszeralonkologisches Zentrum Dachau | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 28 | extern: 16 | Helios-intern: 12</text>
+<text class="small" x="840" y="1454">10. Viszeralonkologisches Zentrum Helios Kliniken Schwerin | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 26 | extern: 11 | Helios-intern: 15</text>
+<text class="small" x="840" y="1482">11. Uroonkologisches Zentrum Helios Kliniken Schwerin | Kategorie: Uroonkologische Zentren | Partner gesamt: 26 | extern: 8 | Helios-intern: 18</text>
+<text class="small" x="840" y="1510">12. Helios Viszeralonkologische Zentrum Erfurt | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 25 | extern: 12 | Helios-intern: 13</text>
+<text class="small" x="1600" y="1370">13. Viszeralonkologisches Zentrum Berlin-Buch | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 22 | extern: 10 | Helios-intern: 12</text>
+<text class="small" x="1600" y="1398">14. Viszeralonkologisches Zentrum am Helios Universitätsklini... | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 21 | extern: 5 | Helios-intern: 16</text>
+<text class="small" x="1600" y="1426">15. Viszeralonkologisches Zentrum HELIOS Klinikum Pforzheim | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 21 | extern: 10 | Helios-intern: 11</text>
+<text class="small" x="1600" y="1454">16. Uroonkologisches Zentrum Wiesbaden | Kategorie: Uroonkologische Zentren | Partner gesamt: 21 | extern: 6 | Helios-intern: 15</text>
+<text class="small" x="1600" y="1482">17. Viszeralonkologisches Zentrum Helios Dr. Horst Schmidt Kl... | Kategorie: Viszeralonkologische Zentren | Partner gesamt: 20 | extern: 5 | Helios-intern: 15</text>
+<text class="small" x="1600" y="1510">18. Uroonkologisches Zentrum am Helios Universitätsklinikum W... | Kategorie: Uroonkologische Zentren | Partner gesamt: 20 | extern: 7 | Helios-intern: 13</text>
+</svg>

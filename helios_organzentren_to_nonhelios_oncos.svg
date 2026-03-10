@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="300">
+<style>text { font-family: Arial, sans-serif; } .title { font-size: 28px; font-weight: bold; } .hdr { font-size: 20px; font-weight: bold; } .label { font-size: 15px; } </style>
+<text class="title" x="900" y="40" text-anchor="middle">Helios Organzentren tied to non-Helios Onkologische Zentren</text>
+<text class="hdr" x="280" y="70" text-anchor="middle">Helios Organzentren</text>
+<text class="hdr" x="1520" y="70" text-anchor="middle">Non-Helios Onkozentren</text>
+<line x1="280" y1="120" x2="1520" y2="120" stroke="#4a6ea9" stroke-width="2" opacity="0.6" />
+<line x1="280" y1="120" x2="1520" y2="200" stroke="#4a6ea9" stroke-width="2" opacity="0.6" />
+<circle cx="280" cy="120" r="8" fill="#2b8cbe" />
+<text class="label" x="266" y="125" text-anchor="end">Lunge: Lungenkrebszentrum Helios/Johanniter/Universitätsklinikum Bonn – Helios Siegburg</text>
+<circle cx="1520" cy="120" r="8" fill="#e34a33" />
+<text class="label" x="1534" y="125" text-anchor="start">Onkologisches Zentrum Bonn/Rhein-Sieg &amp; Partner</text>
+<circle cx="1520" cy="200" r="8" fill="#e34a33" />
+<text class="label" x="1534" y="205" text-anchor="start">Onkologisches Zentrum im CIO Bonn</text>
+</svg>
